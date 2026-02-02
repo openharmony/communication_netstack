@@ -19,6 +19,9 @@
 #include <cstdint>
 #include <string>
 #include "curl/curl.h"
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+#include "http_deadflow_info.h"
+#endif
 
 namespace OHOS::NetStack::ChrClient {
 
@@ -70,6 +73,9 @@ typedef struct DataTransChrStats {
     std::string processName;
     DataTransHttpInfo httpInfo;
     DataTransTcpInfo tcpInfo;
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    HttpDeadFlowInfo httpDeadFlowInfo;
+#endif
 } DataTransChrStats;
 }  // namespace OHOS::NetStack
 #endif  // COMMUNICATIONNETSTACK_I_NETSTACK_CHR_CLIENT_H

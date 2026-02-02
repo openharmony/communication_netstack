@@ -35,6 +35,9 @@
 #ifdef HTTP_HANDOVER_FEATURE
 struct HttpHandoverInfo;
 #endif
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+#include "http_deadflow_info.h"
+#endif
 
 namespace OHOS::NetStack::Http {
 static constexpr const uint32_t MAGIC_NUMBER = 0x86161616;
@@ -190,6 +193,11 @@ public:
  
     std::string GetRequestHandoverInfo();
 #endif
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    void SetHttpDeadFlowInfo(int32_t port, bool reused, int32_t socket, int32_t retries,
+        int32_t tdiff);
+    const HttpDeadFlowInfo &GetHttpDeadFlowInfo();
+#endif
 private:
     uint32_t magicNumber_ = MAGIC_NUMBER;
     int32_t taskId_ = -1;
@@ -226,6 +234,9 @@ private:
     std::unique_ptr<HttpInterceptor> interceptor_ = nullptr;
 #endif
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    HttpDeadFlowInfo deadFlowInfo_;
+#endif
     RequestTracer::Trace trace_;
 
     bool CheckParamsType(napi_value *params, size_t paramsCount);
