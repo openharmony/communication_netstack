@@ -1202,6 +1202,23 @@ std::string RequestContext::GetRequestHandoverInfo()
 }
 #endif
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+void RequestContext::SetHttpDeadFlowInfo(int32_t port, bool reused, int32_t socket,
+    int32_t retries, int32_t diff)
+{
+    deadFlowInfo_.sPortStr += std::to_string(port) + ";";
+    deadFlowInfo_.isReused = reused;
+    deadFlowInfo_.sock = socket;
+    deadFlowInfo_.retryCount = retries;
+    deadFlowInfo_.tdiff += std::to_string(diff) + ";";
+}
+
+const HttpDeadFlowInfo &RequestContext::GetHttpDeadFlowInfo()
+{
+    return deadFlowInfo_;
+}
+#endif
+
 void RequestContext::ParseAddressFamily(napi_value optionsValue)
 {
     std::string addressFamily = NapiUtils::GetStringPropertyUtf8(GetEnv(), optionsValue,

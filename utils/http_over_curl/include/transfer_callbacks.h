@@ -22,7 +22,9 @@
 #ifdef HTTP_HANDOVER_FEATURE
 #include "http_handover_info.h"
 #endif
-
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+#include "http_deadflow_info.h"
+#endif
 namespace OHOS::NetStack::HttpOverCurl {
 
 using TransferDoneCallback = std::function<void(CURLMsg *curlMessage, void *opaqueData)>;
@@ -30,6 +32,9 @@ using TransferStartedCallback = std::function<void(CURL *easyHandle, void *opaqu
 #ifdef HTTP_HANDOVER_FEATURE
 using TransferHandoverInfoCallback = std::function<HttpHandoverStackInfo(void *opaqueData)>;
 using SetHandoverInfoCallback = std::function<void(HttpHandoverInfo httpHandoverInfo, void *opaqueData)>;
+#endif
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+using GetDeadFlowInfoCallback = std::function<HttpDeadFlowInfo (void *opaqueData)>;
 #endif
 
 } // namespace OHOS::NetStack::HttpOverCurl

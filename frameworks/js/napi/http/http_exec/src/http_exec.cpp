@@ -71,8 +71,11 @@
 #ifdef HTTP_HANDOVER_FEATURE
 #include "http_handover_info.h"
 #endif
-
 #include "http_utils.h"
+
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+static constexpr const long DEAD_FLOW_RESET_TIMEOUT = 20000; // ms
+#endif
 
 
 #define NETSTACK_CURL_EASY_SET_OPTION(handle, opt, data, asyncContext)                                   \
@@ -130,6 +133,18 @@ static void AsyncWorkRequestInStreamCallback(napi_env env, napi_status status, v
 }
 
 #if HAS_NETMANAGER_BASE
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+HttpDeadFlowInfo GetDeadFlowInfoCallback(void *opaqueData)
+{
+    auto context = static_cast<RequestContext *>(opaqueData);
+    if (context == nullptr) {
+        NETSTACK_LOGE("setDeadFlowInfoCallback context is nullptr, Error!");
+        return HttpDeadFlowInfo();
+    }
+    return context->GetHttpDeadFlowInfo();
+};
+#endif
+
 void HttpExec::SetRequestInfoCallbacks(HttpOverCurl::TransferCallbacks &callbacks)
 {
     static auto startedCallback = +[](CURL *easyHandle, void *opaqueData) {
@@ -174,6 +189,9 @@ void HttpExec::SetRequestInfoCallbacks(HttpOverCurl::TransferCallbacks &callback
     };
     callbacks.handoverInfoCallback = handoverInfoCallback;
     callbacks.setHandoverInfoCallback = setHandoverInfoCallback;
+#endif
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    callbacks.getDeadFlowInfoCallback = GetDeadFlowInfoCallback;
 #endif
 }
 #endif
@@ -1603,6 +1621,9 @@ bool HttpExec::SetRequestOption(CURL *curl, RequestContext *context)
     SetDnsCacheOption(curl, context);
     SetIpResolve(curl, context);
     SetTCPOption(curl, context);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    SetDeadFlowResetOption(curl, context);
+#endif
     return true;
 }
 
@@ -2154,13 +2175,60 @@ bool HttpExec::SetTCPOption(CURL *curl, RequestContext *context)
             auto resp = reinterpret_cast<HttpRequestOptions *>(clientp);
             HttpRequestOptions::TcpConfiguration config = resp->GetTCPOption();
             if (config.SetOptionToSocket(sock)) {
-                NETSTACK_LOGD("SetOptionToSocket userTimeout = %{public}d", config.userTimeout_);
+                NETSTACK_LOGD("SetOptionToSocket %{public}d, userTimeout = %{public}d", sock, config.userTimeout_);
             }
 
             return CURL_SOCKOPT_OK;
         }, context);
     return true;
 }
+
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+bool UserTimeoutFunction(void *clientp, curl_socket_t sock, bool isReused,
+    int retryCount, int sPort, long long diff)
+{
+    if (!clientp || sock <= 0) {
+        NETSTACK_LOGE("userData is nullptr or invalid sock");
+        return false;
+    }
+    // only in stream-resued scene
+    if (!isReused) {
+        NETSTACK_LOGI("not stream-resued scene");
+        return false;
+    }
+    struct tcp_info tcpInfo = {};
+    socklen_t infoLen = sizeof(tcpInfo);
+    if (getsockopt(sock, IPPROTO_TCP, TCP_INFO, &tcpInfo, &infoLen) < 0) {
+        NETSTACK_LOGI("getsockopt failed, errno: %{public}d", errno);
+        return false;
+    }
+
+    if (tcpInfo.tcpi_state & (TCP_CLOSE | TCP_CLOSE_WAIT | TCP_LAST_ACK)
+        && tcpInfo.tcpi_retransmits > 0) {
+        auto context = reinterpret_cast<RequestContext *>(clientp);
+        context->SetHttpDeadFlowInfo(sPort, isReused, sock, retryCount + 1, static_cast<int32_t>(diff));
+        return true;
+    }
+    return false;
+}
+
+bool HttpExec::SetDeadFlowResetOption(CURL *curl, RequestContext *context)
+{
+    if (!context) {
+        NETSTACK_LOGE("context is nullptr");
+        return false;
+    }
+    long timeout = context->options.GetTCPOption().userTimeout_;
+    if (timeout > DEAD_FLOW_RESET_TIMEOUT || timeout == 0) {
+        timeout = DEAD_FLOW_RESET_TIMEOUT;
+    }
+    NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_USER_TIME_OUT, timeout, context);
+    NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_USER_TIME_OUT_FUNCTION, UserTimeoutFunction, context);
+    NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_USER_TIME_OUT_DATA, context, context);
+    
+    return true;
+}
+#endif
 
 bool HttpExec::SetIpResolve(CURL *curl, RequestContext *context)
 {

@@ -202,24 +202,30 @@ __attribute__((no_sanitize("cfi"))) void EpollMultiDriver::CheckMultiInfo()
     }
 }
 
+#ifdef HAS_NETSTACK_CHR
+void EpollMultiDriver::HandleDfx(CURLMsg *message, CURL *easyHandle, RequestInfo *requestInfo)
+{
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    if (requestInfo != nullptr && requestInfo->callbacks.getDeadFlowInfoCallback) {
+        ChrClient::NetStackChrClient::GetInstance().SetHttpDeadFlowInfo(
+            requestInfo->callbacks.getDeadFlowInfoCallback(requestInfo->opaqueData));
+    }
+#endif
+    ChrClient::NetStackChrClient::GetInstance().GetDfxInfoFromCurlHandleAndReport(easyHandle, message->data.result);
+}
+#endif
+
 void EpollMultiDriver::HandleCurlDoneMessage(CURLMsg *message)
 {
     auto easyHandle = message->easy_handle;
+    auto requestInfo = ongoingRequests_[easyHandle];
 #ifdef HAS_NETSTACK_CHR
-#if ENABLE_HTTP_INTERCEPT
-    long responseCode = 0;
-    curl_easy_getinfo(easyHandle, CURLINFO_RESPONSE_CODE, &responseCode);
-    if (responseCode < HTTP_STATUS_REDIRECT_START || responseCode >= HTTP_STATUS_CLIENT_ERROR_START)
-#endif
-    {
-        ChrClient::NetStackChrClient::GetInstance().GetDfxInfoFromCurlHandleAndReport(easyHandle, message->data.result);
-    }
+    HandleDfx(message, easyHandle, requestInfo);
 #endif
     if (!easyHandle) {
         return;
     }
     curl_multi_remove_handle(multi_, easyHandle);
-    auto requestInfo = ongoingRequests_[easyHandle];
     ongoingRequests_.erase(easyHandle);
 #ifdef HTTP_HANDOVER_FEATURE
     if (netHandoverHandler_ && netHandoverHandler_->ProcessRequestErr(ongoingRequests_, multi_, requestInfo, message)) {
@@ -228,22 +234,23 @@ void EpollMultiDriver::HandleCurlDoneMessage(CURLMsg *message)
 #endif
     std::function<void()> handleCompletion = std::bind(&EpollMultiDriver::HandleCompletion, this, message, requestInfo);
 #if ENABLE_HTTP_INTERCEPT
-    char *location = nullptr;
-    curl_easy_getinfo(easyHandle, CURLINFO_REDIRECT_URL, &location);
+    long responseCode = 0;
+    curl_easy_getinfo(easyHandle, CURLINFO_RESPONSE_CODE, &responseCode);
+    char *redirectUrl = nullptr;
+    curl_easy_getinfo(easyHandle, CURLINFO_REDIRECT_URL, &redirectUrl);
     NETSTACK_LOGD("Redirect responseCode: %{public}d", static_cast<int>(responseCode));
     auto context = reinterpret_cast<OHOS::NetStack::Http::RequestContext *>(requestInfo->opaqueData);
     auto interceptor = context->GetInterceptor();
-    if (responseCode >= HTTP_STATUS_REDIRECT_START && responseCode < HTTP_STATUS_CLIENT_ERROR_START && location &&
+    if (responseCode >= HTTP_STATUS_REDIRECT_START && responseCode < HTTP_STATUS_CLIENT_ERROR_START && redirectUrl &&
         interceptor != nullptr && interceptor->IsRedirectionInterceptor()) {
-        NETSTACK_LOGD("Redirect detected: %{public}s, status=%{public}d", location, static_cast<int>(responseCode));
+        NETSTACK_LOGD("Redirect detected: %{public}s, status=%{public}d", redirectUrl, static_cast<int>(responseCode));
         if (!context->IsReachRedirectLimit()) {
-            auto locationPtr = std::make_shared<std::string>(location);
+            auto redirectUrlPtr = std::make_shared<std::string>(redirectUrl);
             std::function<void()> handleRedirect =
-                std::bind(&EpollMultiDriver::HandleRedirect, this, easyHandle, locationPtr, requestInfo);
-            auto interceptorCallback = interceptor->GetRedirectionInterceptorCallback();
-            auto handleInfo = new RedirectionInterceptorInfo { message, locationPtr };
-            auto redirectCallback =
-                std::bind(interceptorCallback, context, handleRedirect, handleCompletion, handleInfo);
+                std::bind(&EpollMultiDriver::HandleRedirect, this, easyHandle, redirectUrlPtr, requestInfo);
+            auto handleInfo = new RedirectionInterceptorInfo{message, redirectUrlPtr};
+            auto redirectCallback = std::bind(interceptor->GetRedirectionInterceptorCallback(),
+            context, handleRedirect, handleCompletion, handleInfo);
             NapiUtils::CreateUvQueueWorkByModuleId(context->GetEnv(), redirectCallback, context->GetModuleId());
             return;
         }

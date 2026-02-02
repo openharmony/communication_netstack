@@ -169,6 +169,7 @@ ohos_shared_library("http") {
         "HAS_NETMANAGER_BASE=1",
         "HAS_NETSTACK_CHR=1",
         "ENABLE_HTTP_INTERCEPT=1",
+        "HTTP_DEADFLOWRESET_FEATURE=0",
       ]
       sources += [
         "$NETSTACK_DIR/utils/http_over_curl/src/epoll_multi_driver.cpp",
