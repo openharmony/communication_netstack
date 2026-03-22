@@ -66,6 +66,7 @@ socket_sources = [
   "$SOCKET/async_context/src/multicast_get_ttl_context.cpp",
   "$SOCKET/async_context/src/multicast_membership_context.cpp",
   "$SOCKET/async_context/src/multicast_set_loopback_context.cpp",
+  "$SOCKET/async_context/src/multicast_set_reuse_address_context.cpp",
   "$SOCKET/async_context/src/multicast_set_ttl_context.cpp",
   "$SOCKET/async_context/src/tcp_extra_context.cpp",
   "$SOCKET/async_context/src/tcp_send_context.cpp",
@@ -139,12 +140,12 @@ ohos_unittest("two_way_tls_socket_server_unittest") {
   ]
   external_deps = [
     "c_utils:utils",
+    "hiappevent:hiappevent_innerapi",
     "hilog:libhilog",
     "napi:ace_napi",
     "openssl:libcrypto_shared",
-    "openssl:libssl_shared", 
+    "openssl:libssl_shared",
     "samgr:samgr_proxy",
-    "hiappevent:hiappevent_innerapi",
   ]
 
   defines = [ "OPENSSL_SUPPRESS_DEPRECATED" ]
@@ -188,11 +189,11 @@ ohos_unittest("tls_socket_server_mock_branch_test") {
   external_deps = [
     "c_utils:utils",
     "googletest:gmock_main",
+    "hiappevent:hiappevent_innerapi",
     "hilog:libhilog",
     "napi:ace_napi",
     "openssl:libcrypto_shared",
     "openssl:libssl_shared",
-    "hiappevent:hiappevent_innerapi",
   ]
 
   defines = [ "OPENSSL_SUPPRESS_DEPRECATED" ]
