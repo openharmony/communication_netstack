@@ -1814,6 +1814,36 @@ bool ExecSetLoopbackMode(MulticastSetLoopbackContext *context)
     return true;
 }
 
+bool ExecSetReuseAddress(MulticastSetReuseAddressContext *context)
+{
+    int reuse = static_cast<int>(context->GetReuseAddress());
+
+    // 更新EventManager中的reuseAddr状态（无论socket是否创建都需要更新）
+    auto manager = context->GetSharedManager();
+    if (manager == nullptr) {
+        NETSTACK_LOGE("manager is nullptr");
+        return false;
+    }
+    manager->SetReuseAddr(reuse);
+
+    std::shared_lock<std::shared_mutex> lock(manager->GetDataMutex());
+    int sockFd = manager->GetData() ? static_cast<int>(reinterpret_cast<uint64_t>(manager->GetData())) : -1;
+
+    // socket未创建时，只更新标记，bind时会应用设置
+    if (sockFd < 0) {
+        NETSTACK_LOGI("setReuseAddress socket not created, will apply on bind, reuse:%{public}d", reuse);
+        return true;
+    }
+
+    // socket已创建，直接设置SO_REUSEADDR
+    if (setsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<void *>(&reuse), sizeof(reuse)) == -1) {
+        ERROR_RETURN(context, "set SO_REUSEADDR err, reuse:%{public}d, fd:%{public}d, errno:%{public}d",
+                     reuse, sockFd, errno);
+    }
+    NETSTACK_LOGI("setReuseAddress setsockopt success, fd:%{public}d, reuse:%{public}d", sockFd, reuse);
+    return true;
+}
+
 bool ExecGetLoopbackMode(MulticastGetLoopbackContext *context)
 {
     if (!CommonUtils::HasInternetPermission()) {
@@ -2649,6 +2679,11 @@ napi_value UdpGetMulticastTTLCallback(MulticastGetTTLContext *context)
 }
 
 napi_value UdpSetLoopbackModeCallback(MulticastSetLoopbackContext *context)
+{
+    return NapiUtils::GetUndefined(context->GetEnv());
+}
+
+napi_value UdpSetReuseAddressCallback(MulticastSetReuseAddressContext *context)
 {
     return NapiUtils::GetUndefined(context->GetEnv());
 }

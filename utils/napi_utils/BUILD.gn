@@ -37,11 +37,11 @@ ohos_static_library("napi_utils") {
     "src/base_context.cpp",
     "src/event_listener.cpp",
     "src/event_manager.cpp",
+    "src/hi_app_event_report.cpp",
     "src/module_template.cpp",
     "src/napi_utils.cpp",
     "src/secure_char.cpp",
     "src/timing.cpp",
-    "src/hi_app_event_report.cpp",
   ]
 
   part_name = "netstack"
@@ -59,10 +59,10 @@ ohos_static_library("napi_utils") {
 
   if (!build_ohos_sdk) {
     external_deps += [
-      "hiappevent:hiappevent_innerapi",
-      "time_service:time_client",
       "ability_base:configuration",
       "ability_runtime:wantagent_innerkits",
+      "hiappevent:hiappevent_innerapi",
+      "time_service:time_client",
     ]
   }
 
@@ -71,9 +71,7 @@ ohos_static_library("napi_utils") {
       global_parts_info.communication_netmanager_base && is_ohos &&
       is_standard_system && !is_arkui_x && product_name != "ohos-sdk") {
     defines = [ "HAS_NETMANAGER_BASE=1" ]
-    external_deps += [ 
-      "ffrt:libffrt",
-    ]
+    external_deps += [ "ffrt:libffrt" ]
   } else {
     defines = [ "HAS_NETMANAGER_BASE=0" ]
   }
@@ -92,13 +90,12 @@ ohos_static_library("napi_utils_static") {
     "src/base_context.cpp",
     "src/event_listener.cpp",
     "src/event_manager.cpp",
+    "src/hi_app_event_report.cpp",
     "src/module_template.cpp",
     "src/napi_utils.cpp",
     "src/secure_char.cpp",
     "src/timing.cpp",
-    "src/hi_app_event_report.cpp",
   ]
-
 
   public_configs = [ ":napi_utils_public_config" ]
 
@@ -106,11 +103,11 @@ ohos_static_library("napi_utils_static") {
 
   if (!build_ohos_sdk) {
     external_deps += [
-      "hiappevent:hiappevent_innerapi",
-      "time_service:time_client",
       "ability_base:configuration",
       "ability_runtime:wantagent_innerkits",
+      "hiappevent:hiappevent_innerapi",
       "ipc:ipc_single",
+      "time_service:time_client",
     ]
   }
 
@@ -133,8 +130,8 @@ ohos_static_library("napi_utils_static") {
     ]
   } else {
     external_deps += [
-      "napi:ace_napi",
       "bounds_checking_function:libsec_static",
+      "napi:ace_napi",
     ]
   }
   part_name = "netstack"

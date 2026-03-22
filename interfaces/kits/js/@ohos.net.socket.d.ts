@@ -1322,6 +1322,15 @@ declare namespace socket {
      */
     getLoopbackMode(): Promise<boolean>;
     /**
+     * Sets whether the multicast socket supports address reuse.
+     *
+     * @param { boolean } reuse - whether the socket supports address reuse.
+     * @syscap SystemCapability.Communication.NetStack
+     * @stagemodelonly
+     * @since 26.0.0 dynamic&static
+     */
+    setReuseAddress(reuse: boolean): void;
+    /**
      * Obtains the file descriptor of the MulticastSocket.
      * @permission ohos.permission.INTERNET
      * @returns { Promise<int> } The promise returns the file descriptor of the Multicast socket.
