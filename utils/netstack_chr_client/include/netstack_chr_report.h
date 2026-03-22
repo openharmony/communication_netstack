@@ -36,6 +36,9 @@ private:
     void SetWantParam(AAFwk::Want& want, DataTransChrStats chrStats);
     void SetHttpInfoJsonStr(DataTransHttpInfo httpInfo, std::string& httpInfoJsonStr);
     void SetTcpInfoJsonStr(DataTransTcpInfo tcpInfo, std::string& tcpInfoJsonStr);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    void SetHttpDeadFlowInfoJsonStr(const HttpDeadFlowInfo& deadInfo, std::string& deadHttpInfoJsonStr);
+#endif
 };
 }  // namespace OHOS::NatStack::ChrClient
 #endif // COMMUNICATIONNETSTACK_NETSTACK_CHR_REPORT_H
