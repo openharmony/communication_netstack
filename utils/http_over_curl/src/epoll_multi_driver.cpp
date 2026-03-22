@@ -202,24 +202,35 @@ __attribute__((no_sanitize("cfi"))) void EpollMultiDriver::CheckMultiInfo()
     }
 }
 
-void EpollMultiDriver::HandleCurlDoneMessage(CURLMsg *message)
-{
-    auto easyHandle = message->easy_handle;
 #ifdef HAS_NETSTACK_CHR
+void EpollMultiDriver::HandleDfx(CURLMsg *message, CURL *easyHandle, RequestInfo *requestInfo)
+{
 #if ENABLE_HTTP_INTERCEPT
     long responseCode = 0;
     curl_easy_getinfo(easyHandle, CURLINFO_RESPONSE_CODE, &responseCode);
     if (responseCode < HTTP_STATUS_REDIRECT_START || responseCode >= HTTP_STATUS_CLIENT_ERROR_START)
 #endif
-    {
-        ChrClient::NetStackChrClient::GetInstance().GetDfxInfoFromCurlHandleAndReport(easyHandle, message->data.result);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    if (requestInfo != nullptr && requestInfo->callbacks.getDeadFlowInfoCallback) {
+        ChrClient::NetStackChrClient::GetInstance().SetHttpDeadFlowInfo(
+            requestInfo->callbacks.getDeadFlowInfoCallback(requestInfo->opaqueData));
     }
+#endif
+    ChrClient::NetStackChrClient::GetInstance().GetDfxInfoFromCurlHandleAndReport(easyHandle, message->data.result);
+}
+#endif
+
+void EpollMultiDriver::HandleCurlDoneMessage(CURLMsg *message)
+{
+    auto easyHandle = message->easy_handle;
+    auto requestInfo = ongoingRequests_[easyHandle];
+#ifdef HAS_NETSTACK_CHR
+    HandleDfx(message, easyHandle, requestInfo);
 #endif
     if (!easyHandle) {
         return;
     }
     curl_multi_remove_handle(multi_, easyHandle);
-    auto requestInfo = ongoingRequests_[easyHandle];
     ongoingRequests_.erase(easyHandle);
 #ifdef HTTP_HANDOVER_FEATURE
     if (netHandoverHandler_ && netHandoverHandler_->ProcessRequestErr(ongoingRequests_, multi_, requestInfo, message)) {

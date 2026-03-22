@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -100,7 +100,7 @@ int NetStackChrClient::GetTcpInfoFromSock(const curl_socket_t sockfd, DataTransT
     httpTcpInfo.rttvar = tcpInfo.tcpi_rttvar;
     httpTcpInfo.totalRetrans = tcpInfo.tcpi_total_retrans;
     httpTcpInfo.retransmits = tcpInfo.tcpi_retransmits;
-
+    
     if (GetAddrFromSock(sockfd, httpTcpInfo) == 0) {
         httpTcpInfo.srcIp = CommonUtils::AnonymizeIp(httpTcpInfo.srcIp);
         httpTcpInfo.dstIp = CommonUtils::AnonymizeIp(httpTcpInfo.dstIp);
@@ -167,6 +167,13 @@ void NetStackChrClient::GetHttpInfoFromCurl(CURL *handle, DataTransHttpInfo &htt
     httpInfo.hostName = CommonUtils::AnonymizeHost(originUrl);
 }
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+void NetStackChrClient::SetHttpDeadFlowInfo(const HttpDeadFlowInfo &deadFlowInfo)
+{
+    deadFlowInfo_ = deadFlowInfo;
+}
+#endif
+
 int NetStackChrClient::ShouldReportHttpAbnormalEvent(const DataTransHttpInfo &httpInfo)
 {
     if (httpInfo.responseCode < HTTP_REQUEST_SUCCESS_MIN || httpInfo.responseCode > HTTP_REQUEST_SUCCESS_MAX ||
@@ -177,7 +184,11 @@ int NetStackChrClient::ShouldReportHttpAbnormalEvent(const DataTransHttpInfo &ht
         httpInfo.totalTime > HTTP_FILE_TRANSFER_TIME_THRESHOLD) {
         return 0;
     }
-
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    if (deadFlowInfo_.sock != 0) {
+        return 0;
+    }
+#endif
     return -1;
 }
 
@@ -194,13 +205,17 @@ void NetStackChrClient::GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t 
         dataTransChrStats.processName = CommonUtils::GetBundleName().value();
     }
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    dataTransChrStats.httpDeadFlowInfo = deadFlowInfo_;
+#endif
+
     GetHttpInfoFromCurl(handle, dataTransChrStats.httpInfo);
 
     curl_off_t sockfd = 0;
     curl_easy_getinfo(handle, CURLINFO_ACTIVESOCKET, &sockfd);
 
     if (GetTcpInfoFromSock(sockfd, dataTransChrStats.tcpInfo) != 0) {
-        NETSTACK_LOGE("Chr client get tcp info from socket failed, sockfd: %{public} " PRId64, sockfd);
+        NETSTACK_LOGI("Chr client get tcp info from socket: %{public} " PRId64, sockfd);
     }
     netstackChrReport_.LogHttpInfo(dataTransChrStats);
     if (ShouldReportHttpAbnormalEvent(dataTransChrStats.httpInfo) != 0) {
@@ -208,7 +223,7 @@ void NetStackChrClient::GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t 
     }
     int ret = netstackChrReport_.ReportCommonEvent(dataTransChrStats);
     if (ret > 0) {
-        NETSTACK_LOGE("Send to CHR failed, error code %{public}d", ret);
+        NETSTACK_LOGI("Send to CHR failed, error code %{public}d", ret);
     }
 }
 
