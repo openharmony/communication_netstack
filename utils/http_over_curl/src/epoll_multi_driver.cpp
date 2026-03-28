@@ -205,18 +205,18 @@ __attribute__((no_sanitize("cfi"))) void EpollMultiDriver::CheckMultiInfo()
 #ifdef HAS_NETSTACK_CHR
 void EpollMultiDriver::HandleDfx(CURLMsg *message, CURL *easyHandle, RequestInfo *requestInfo)
 {
-#if ENABLE_HTTP_INTERCEPT
-    long responseCode = 0;
-    curl_easy_getinfo(easyHandle, CURLINFO_RESPONSE_CODE, &responseCode);
-    if (responseCode < HTTP_STATUS_REDIRECT_START || responseCode >= HTTP_STATUS_CLIENT_ERROR_START)
-#endif
 #ifdef HTTP_DEADFLOWRESET_FEATURE
+    HttpDeadFlowInfo deadFlowInfo;
+    const HttpDeadFlowInfo *deadFlowInfoPtr = nullptr;
     if (requestInfo != nullptr && requestInfo->callbacks.getDeadFlowInfoCallback) {
-        ChrClient::NetStackChrClient::GetInstance().SetHttpDeadFlowInfo(
-            requestInfo->callbacks.getDeadFlowInfoCallback(requestInfo->opaqueData));
+        deadFlowInfo = requestInfo->callbacks.getDeadFlowInfoCallback(requestInfo->opaqueData);
+        deadFlowInfoPtr = &deadFlowInfo;
     }
-#endif
+    ChrClient::NetStackChrClient::GetInstance().GetDfxInfoFromCurlHandleAndReport(easyHandle, message->data.result,
+        deadFlowInfoPtr);
+#else
     ChrClient::NetStackChrClient::GetInstance().GetDfxInfoFromCurlHandleAndReport(easyHandle, message->data.result);
+#endif
 }
 #endif
 
@@ -239,6 +239,8 @@ void EpollMultiDriver::HandleCurlDoneMessage(CURLMsg *message)
 #endif
     std::function<void()> handleCompletion = std::bind(&EpollMultiDriver::HandleCompletion, this, message, requestInfo);
 #if ENABLE_HTTP_INTERCEPT
+    long responseCode = 0;
+    curl_easy_getinfo(easyHandle, CURLINFO_RESPONSE_CODE, &responseCode);
     char *location = nullptr;
     curl_easy_getinfo(easyHandle, CURLINFO_REDIRECT_URL, &location);
     NETSTACK_LOGD("Redirect responseCode: %{public}d", static_cast<int>(responseCode));

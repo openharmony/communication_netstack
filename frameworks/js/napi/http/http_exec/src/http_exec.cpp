@@ -141,7 +141,7 @@ HttpDeadFlowInfo GetDeadFlowInfoCallback(void *opaqueData)
     auto context = static_cast<RequestContext *>(opaqueData);
     if (context == nullptr) {
         NETSTACK_LOGE("setDeadFlowInfoCallback context is nullptr, Error!");
-        return HttpDeadFlowInfo();
+        return {};
     }
     return context->GetHttpDeadFlowInfo();
 };
@@ -2415,8 +2415,8 @@ bool UserTimeoutFunction(void *clientp, curl_socket_t sock, bool isReused,
         return false;
     }
 
-    if (tcpInfo.tcpi_state & (TCP_CLOSE | TCP_CLOSE_WAIT | TCP_LAST_ACK)
-        && tcpInfo.tcpi_retransmits > 0) {
+    if ((tcpInfo.tcpi_state == TCP_CLOSE || tcpInfo.tcpi_state == TCP_CLOSE_WAIT ||
+        tcpInfo.tcpi_state == TCP_LAST_ACK) && tcpInfo.tcpi_retransmits > 0) {
         auto context = reinterpret_cast<RequestContext *>(clientp);
         context->SetHttpDeadFlowInfo(sPort, isReused, sock, retryCount + 1, static_cast<int32_t>(diff));
         return true;
