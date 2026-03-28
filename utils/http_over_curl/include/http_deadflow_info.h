@@ -16,21 +16,11 @@
 #ifndef COMMUNICATIONNETSTACK_HTTP_DEADFLOW_INFO_H
 #define COMMUNICATIONNETSTACK_HTTP_DEADFLOW_INFO_H
 
+#include <cstdint>
+#include <string>
+
 struct HttpDeadFlowInfo {
-    HttpDeadFlowInfo(std::string portStr, bool reused, int32_t socket, int32_t retries, std::string diff)
-        : sPortStr(portStr), isReused(reused), sock(socket), retryCount(retries), tdiff(diff) {}
     HttpDeadFlowInfo() = default;
-    HttpDeadFlowInfo& operator=(const HttpDeadFlowInfo& other)
-    {
-        if (this != &other) {
-            sPortStr = other.sPortStr;
-            isReused = other.isReused;
-            sock = other.sock;
-            retryCount = other.retryCount;
-            tdiff = other.tdiff;
-        }
-        return *this;
-    }
 
     /* Sport of dead stream, split by semicolon */
     std::string sPortStr = "";
@@ -47,4 +37,4 @@ struct HttpDeadFlowInfo {
     /* Http block time on dead stream before retrying, split by semicolon */
     std::string tdiff = "";
 };
-#endif  // COMMUNICATIONNETSTACK_HTTP_DEADFLOW_INFO_H
+#endif  // COMMUNICATIONNETSTACK_HTTP_DEADFLOW_INFO_H

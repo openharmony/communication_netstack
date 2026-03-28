@@ -167,15 +167,9 @@ void NetStackChrClient::GetHttpInfoFromCurl(CURL *handle, DataTransHttpInfo &htt
     httpInfo.hostName = CommonUtils::AnonymizeHost(originUrl);
 }
 
-#ifdef HTTP_DEADFLOWRESET_FEATURE
-void NetStackChrClient::SetHttpDeadFlowInfo(const HttpDeadFlowInfo &deadFlowInfo)
+int NetStackChrClient::ShouldReportHttpAbnormalEvent(const DataTransChrStats &dataTransChrStats)
 {
-    deadFlowInfo_ = deadFlowInfo;
-}
-#endif
-
-int NetStackChrClient::ShouldReportHttpAbnormalEvent(const DataTransHttpInfo &httpInfo)
-{
+    const auto &httpInfo = dataTransChrStats.httpInfo;
     if (httpInfo.responseCode < HTTP_REQUEST_SUCCESS_MIN || httpInfo.responseCode > HTTP_REQUEST_SUCCESS_MAX ||
         httpInfo.curlCode != 0 || httpInfo.osError != 0 || httpInfo.proxyError != 0) {
         return 0;
@@ -185,14 +179,19 @@ int NetStackChrClient::ShouldReportHttpAbnormalEvent(const DataTransHttpInfo &ht
         return 0;
     }
 #ifdef HTTP_DEADFLOWRESET_FEATURE
-    if (deadFlowInfo_.sock != 0) {
+    if (dataTransChrStats.httpDeadFlowInfo.sock != 0) {
         return 0;
     }
 #endif
     return -1;
 }
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+void NetStackChrClient::GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t curlCode,
+    const HttpDeadFlowInfo *deadFlowInfo)
+#else
 void NetStackChrClient::GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t curlCode)
+#endif
 {
     if (handle == NULL) {
         return;
@@ -206,7 +205,9 @@ void NetStackChrClient::GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t 
     }
 
 #ifdef HTTP_DEADFLOWRESET_FEATURE
-    dataTransChrStats.httpDeadFlowInfo = deadFlowInfo_;
+    if (deadFlowInfo != nullptr) {
+        dataTransChrStats.httpDeadFlowInfo = *deadFlowInfo;
+    }
 #endif
 
     GetHttpInfoFromCurl(handle, dataTransChrStats.httpInfo);
@@ -218,7 +219,7 @@ void NetStackChrClient::GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t 
         NETSTACK_LOGI("Chr client get tcp info from socket: %{public} " PRId64, sockfd);
     }
     netstackChrReport_.LogHttpInfo(dataTransChrStats);
-    if (ShouldReportHttpAbnormalEvent(dataTransChrStats.httpInfo) != 0) {
+    if (ShouldReportHttpAbnormalEvent(dataTransChrStats) != 0) {
         return;
     }
     int ret = netstackChrReport_.ReportCommonEvent(dataTransChrStats);

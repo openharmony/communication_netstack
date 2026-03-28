@@ -1102,6 +1102,7 @@ std::string RequestContext::GetBundleName() const
     return bundleName_;
 }
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
 void RequestContext::SetDeadFlowResetResult(bool result)
 {
     isDeadFlowResetTargetApp_ = result;
@@ -1111,6 +1112,7 @@ bool RequestContext::IsDeadFlowResetTargetApp()
 {
     return isDeadFlowResetTargetApp_;
 }
+#endif
 
 void RequestContext::SetCurlHandle(CURL *handle)
 {

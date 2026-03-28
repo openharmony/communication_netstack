@@ -376,6 +376,9 @@ napi_value HttpModuleExports::HttpRequest::RequestSync(napi_env env, napi_callba
             context->SetModuleId(g_moduleId);
             context->SetAtomicService(g_appIsAtomicService);
             context->SetBundleName(g_appBundleName);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+            context->SetDeadFlowResetResult(g_appIsDeadFlowResetTarget);
+#endif
             context->SetSyncWait(true);
             bool execResult = HttpExec::ExecRequest(context);
             if (execResult) {

@@ -90,13 +90,11 @@ void NetStackChrReport::LogHttpInfo(const DataTransChrStats& chrStats)
 #ifdef HTTP_DEADFLOWRESET_FEATURE
     std::string httpDeadFlowInfoJsonStr;
     SetHttpDeadFlowInfoJsonStr(chrStats.httpDeadFlowInfo, httpDeadFlowInfoJsonStr);
-#endif
-#ifdef HTTP_DEADFLOWRESET_FEATURE
-    NETSTACK_LOGI("LogHttpInfo: {PROCESS_NAME: %{public}s, HTTP_INFO: %{public}s, TCP_INFO: %{public}s"
+    NETSTACK_LOGD("LogHttpInfo: {PROCESS_NAME: %{public}s, HTTP_INFO: %{public}s, TCP_INFO: %{public}s"
         ", DEADFLOWINFO: %{public}s}", chrStats.processName.c_str(), httpInfoJsonStr.c_str(),
         tcpInfoJsonStr.c_str(), httpDeadFlowInfoJsonStr.c_str());
 #else
-    NETSTACK_LOGD("LogHttpInfo: {PROCESS_NAME: %{public}s, HTTP_INFO: %{public}s, TCP_INFO: %{public}s",
+    NETSTACK_LOGD("LogHttpInfo: {PROCESS_NAME: %{public}s, HTTP_INFO: %{public}s, TCP_INFO: %{public}s}",
         chrStats.processName.c_str(), httpInfoJsonStr.c_str(), tcpInfoJsonStr.c_str());
 #endif
 }
