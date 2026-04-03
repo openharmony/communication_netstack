@@ -529,4 +529,14 @@ int HttpRequestOptions::GetInactivityMs() const
 {
     return inactivityMs_;
 }
+
+void HttpRequestOptions::SetEnableAutoCookie(bool enableAutoCookie)
+{
+    enableAutoCookie_ = enableAutoCookie;
+}
+
+bool HttpRequestOptions::GetEnableAutoCookie() const
+{
+    return enableAutoCookie_;
+}
 } // namespace OHOS::NetStack::Http

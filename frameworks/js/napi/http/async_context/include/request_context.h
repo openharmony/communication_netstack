@@ -82,6 +82,12 @@ public:
     HttpInterceptor *GetInterceptor();
 #endif
 
+    void SetEnableAutoCookie(bool enableAutoCookie);
+
+    void SetShareHandle(std::shared_ptr<CURLSH> shareHandle);
+
+    [[nodiscard]] std::shared_ptr<CURLSH> GetShareHandle() const;
+
     HttpRequestOptions options;
 
     HttpResponse response;
@@ -289,11 +295,15 @@ private:
 
     void ParseInactivityMs(napi_value optionsValue);
 
+    void ParseEnableAutoCookie(napi_value optionsValue);
+
 private:
     std::mutex syncMutex_;
+    mutable std::mutex shareHandleMutex_;
     std::condition_variable syncCv_;
     bool syncComplete_ = false;
     bool isSyncWait_ = false;
+    std::shared_ptr<CURLSH> shareHandle_;
 };
 } // namespace OHOS::NetStack::Http
 

@@ -1849,7 +1849,11 @@ bool HttpExec::SetOption(CURL *curl, RequestContext *context, struct curl_slist 
     NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_MAXREDIRS, context->options.GetMaxRedirects(), context);
 
     /* first #undef CURL_DISABLE_COOKIES in curl config */
-    NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_COOKIEFILE, "", context);
+    auto shareHandle = context->GetShareHandle();
+    if (context->options.GetEnableAutoCookie() && shareHandle) {
+        NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_SHARE, shareHandle.get(), context);
+        NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_COOKIEFILE, "", context);
+    }
     NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_NOSIGNAL, 1L, context);
     NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_TIMEOUT_MS, context->options.GetReadTimeout(), context);
     NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_CONNECTTIMEOUT_MS, context->options.GetConnectTimeout(), context);

@@ -669,6 +669,23 @@ void RequestContext::UrlAndOptions(napi_value urlValue, napi_value optionsValue)
     ParseInactivityMs(optionsValue);
 }
 
+void RequestContext::SetEnableAutoCookie(bool enableAutoCookie)
+{
+    options.SetEnableAutoCookie(enableAutoCookie);
+}
+
+void RequestContext::SetShareHandle(std::shared_ptr<CURLSH> shareHandle)
+{
+    std::lock_guard<std::mutex> lock(shareHandleMutex_);
+    shareHandle_ = std::move(shareHandle);
+}
+
+std::shared_ptr<CURLSH> RequestContext::GetShareHandle() const
+{
+    std::lock_guard<std::mutex> lock(shareHandleMutex_);
+    return shareHandle_;
+}
+
 bool RequestContext::IsUsingCache() const
 {
     return usingCache_;

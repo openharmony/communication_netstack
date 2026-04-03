@@ -33,6 +33,7 @@
 #include "napi/native_api.h"
 #include "uv.h"
 
+
 namespace OHOS::NetStack {
 static constexpr const uint32_t EVENT_MANAGER_MAGIC_NUMBER = 0x86161616;
 struct EventManagerMagic {
@@ -229,7 +230,30 @@ public:
     [[maybe_unused]] struct {
         uint32_t magicNumber = EVENT_MANAGER_MAGIC_NUMBER;
     } innerMagic_;
+    void SetShareHandle(const std::shared_ptr<void> &shareHandle)
+    {
+        std::lock_guard<std::mutex> lock(shareHandleMutex_);
+        shareHandle_ = shareHandle;
+    }
+
+    [[nodiscard]] std::shared_ptr<void> GetShareHandle() const
+    {
+        std::lock_guard<std::mutex> lock(shareHandleMutex_);
+        return shareHandle_;
+    }
+
+    void ResetShareHandle()
+    {
+        std::lock_guard<std::mutex> lock(shareHandleMutex_);
+        shareHandle_.reset();
+    }
+
     std::map<std::string, napi_ref> interceptorRefs_;
+    bool enableAutoCookie_ = false;
+
+private:
+    mutable std::mutex shareHandleMutex_;
+    std::shared_ptr<void> shareHandle_;
 };
 
 struct EventManagerWrapper {
