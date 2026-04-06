@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -101,7 +101,7 @@ int NetStackChrClient::GetTcpInfoFromSock(const curl_socket_t sockfd, DataTransT
     httpTcpInfo.rttvar = tcpInfo.tcpi_rttvar;
     httpTcpInfo.totalRetrans = tcpInfo.tcpi_total_retrans;
     httpTcpInfo.retransmits = tcpInfo.tcpi_retransmits;
-
+    
     if (GetAddrFromSock(sockfd, httpTcpInfo) == 0) {
         httpTcpInfo.srcIp = CommonUtils::AnonymizeIp(httpTcpInfo.srcIp);
         httpTcpInfo.dstIp = CommonUtils::AnonymizeIp(httpTcpInfo.dstIp);
@@ -178,8 +178,9 @@ void NetStackChrClient::GetUrlInfoFromCurl(CURL *handle, DataTransUrlInfo &urlIn
     urlInfo.hostName = CommonUtils::AnonymizeHost(SimpleUrl);
 }
 
-int NetStackChrClient::ShouldReportHttpAbnormalEvent(const DataTransHttpInfo &httpInfo)
+int NetStackChrClient::ShouldReportHttpAbnormalEvent(const DataTransChrStats &dataTransChrStats)
 {
+    const auto &httpInfo = dataTransChrStats.httpInfo;
     if (httpInfo.responseCode < HTTP_REQUEST_SUCCESS_MIN || httpInfo.responseCode > HTTP_REQUEST_SUCCESS_MAX ||
         httpInfo.curlCode != 0 || httpInfo.osError != 0 || httpInfo.proxyError != 0) {
         return 0;
@@ -188,7 +189,11 @@ int NetStackChrClient::ShouldReportHttpAbnormalEvent(const DataTransHttpInfo &ht
         httpInfo.totalTime > HTTP_FILE_TRANSFER_TIME_THRESHOLD) {
         return 0;
     }
-
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    if (dataTransChrStats.httpDeadFlowInfo.sock != 0) {
+        return 0;
+    }
+#endif
     return -1;
 }
 
@@ -204,7 +209,12 @@ bool NetStackChrClient::ShouldReportUrlAbnormalEvent(const DataTransUrlInfo &url
     return false;
 }
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+void NetStackChrClient::GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t curlCode,
+    const HttpDeadFlowInfo *deadFlowInfo)
+#else
 void NetStackChrClient::GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t curlCode)
+#endif
 {
     if (handle == NULL) {
         return;
@@ -217,6 +227,12 @@ void NetStackChrClient::GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t 
         dataTransChrStats.processName = CommonUtils::GetBundleName().value();
     }
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    if (deadFlowInfo != nullptr) {
+        dataTransChrStats.httpDeadFlowInfo = *deadFlowInfo;
+    }
+#endif
+
     GetHttpInfoFromCurl(handle, dataTransChrStats.httpInfo);
 
     curl_off_t sockfd = 0;
@@ -225,7 +241,7 @@ void NetStackChrClient::GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t 
     GetTcpInfoFromSock(sockfd, dataTransChrStats.tcpInfo);
 
     netstackChrReport_.LogHttpInfo(dataTransChrStats);
-    if (ShouldReportHttpAbnormalEvent(dataTransChrStats.httpInfo) != 0) {
+    if (ShouldReportHttpAbnormalEvent(dataTransChrStats) != 0) {
         return;
     }
     netstackChrReport_.ReportCommonEvent(dataTransChrStats);

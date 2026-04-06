@@ -39,6 +39,9 @@ private:
     void SetHttpInfoJsonStr(DataTransHttpInfo httpInfo, std::string& httpInfoJsonStr);
     void SetUrlInfoJsonStr(const DataTransUrlInfo &httpInfo, std::string &urlInfoJsonStr);
     void SetTcpInfoJsonStr(DataTransTcpInfo tcpInfo, std::string& tcpInfoJsonStr);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    void SetHttpDeadFlowInfoJsonStr(const HttpDeadFlowInfo& deadInfo, std::string& deadHttpInfoJsonStr);
+#endif
 };
 }  // namespace OHOS::NatStack::ChrClient
 #endif // COMMUNICATIONNETSTACK_NETSTACK_CHR_REPORT_H
