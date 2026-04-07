@@ -1743,6 +1743,7 @@ bool HttpExec::SetDnsResolvOption(CURL *curl, RequestContext *context)
     struct addrinfo *res = nullptr;
     int ret = getaddrinfo_custom(host.c_str(), nullptr, nullptr, &res);
     if (ret == 0) {
+        NETSTACK_LOGI("SetDnsResolvOption use getaddrinfo_custom");
         NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_USE_DNS_INTERCEPTOR, 1L, context);
     } else {
         ret = getaddrinfo_hook(host.c_str(), nullptr, nullptr, &res);
