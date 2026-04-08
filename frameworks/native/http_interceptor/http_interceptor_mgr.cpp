@@ -177,7 +177,7 @@ void HttpInterceptorMgr::IteratorReadRequestInterceptor(std::shared_ptr<OH_Http_
 }
 
 OH_Interceptor_Result HttpInterceptorMgr::IteratorRequestInterceptor(
-    std::shared_ptr<OH_Http_Interceptor_Request> &req, bool &isModified, bool needDeepCopy)
+    std::shared_ptr<OH_Http_Interceptor_Request> &req, bool &isModified, OH_Interceptor_Type type, bool needDeepCopy)
 {
     NETSTACK_LOGD("Enter IteratorRequestInterceptor");
     if (req == nullptr) {
@@ -202,7 +202,8 @@ OH_Interceptor_Result HttpInterceptorMgr::IteratorRequestInterceptor(
 
     OH_Interceptor_Result result = OH_CONTINUE;
     for (const auto &interceptor : requestInterceptorList_) {
-        if (interceptor->type == OH_TYPE_MODIFY && interceptor->handler != nullptr && interceptor->enabled) {
+        if (interceptor->type != OH_TYPE_READ_ONLY && interceptor->type == type && interceptor->handler != nullptr &&
+            interceptor->enabled) {
             int32_t isModifiedFlag = 0;
             auto ret = interceptor->handler(reqTmp.get(), nullptr, &isModifiedFlag);
             if (isModifiedFlag) {
@@ -258,7 +259,7 @@ void HttpInterceptorMgr::IteratorReadResponseInterceptor(std::shared_ptr<OH_Http
 }
 
 OH_Interceptor_Result HttpInterceptorMgr::IteratorResponseInterceptor(
-    std::shared_ptr<OH_Http_Interceptor_Response> &resp, bool &isModified, bool needDeepCopy)
+    std::shared_ptr<OH_Http_Interceptor_Response> &resp, bool &isModified, OH_Interceptor_Type type, bool needDeepCopy)
 {
     NETSTACK_LOGD("Enter IteratorResponseInterceptor");
     if (resp == nullptr) {
@@ -282,7 +283,8 @@ OH_Interceptor_Result HttpInterceptorMgr::IteratorResponseInterceptor(
     }
     OH_Interceptor_Result result = OH_CONTINUE;
     for (const auto &interceptor : responseInterceptorList_) {
-        if (interceptor->type == OH_TYPE_MODIFY && interceptor->handler != nullptr && interceptor->enabled) {
+        if (interceptor->type != OH_TYPE_READ_ONLY && interceptor->type == type && interceptor->handler != nullptr &&
+            interceptor->enabled) {
             int32_t isModifiedFlag = 0;
             OH_Interceptor_Result ret = interceptor->handler(nullptr, respTmp.get(), &isModifiedFlag);
             if (isModifiedFlag) {
