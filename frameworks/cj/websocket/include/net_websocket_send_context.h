@@ -25,6 +25,7 @@ class CJWebsocketProxy;
 class WebSocketSendContext final : public WebSocketBaseContext {
 public:
     WebSocketSendContext() = delete;
+    ~WebSocketSendContext();
 
     WebSocketSendContext(CJWebsocketProxy* websocketProxy);
 
