@@ -250,6 +250,10 @@ void NetStackChrClient::GetDfxUrlInfoFromCurlHandleAndReport(CURL *handle, int32
     if (!ShouldReportUrlAbnormalEvent(dataTransChrStats.urlInfo)) {
         return;
     }
+    char *ip = nullptr;
+    curl_easy_getinfo(handle, CURLINFO_PRIMARY_IP, &ip);
+    std::string dstIp = (ip == nullptr ? "" : ip);
+    dataTransChrStats.urlInfo.dstIp = CommonUtils::AnonymizeIp(dstIp);
     netstackChrReport_.ReportUrlCommonEvent(dataTransChrStats);
 }
 
