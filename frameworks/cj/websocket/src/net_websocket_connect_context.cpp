@@ -161,7 +161,7 @@ void WebSocketConnectContext::ParseHeader(CArrString header)
     if (header.head == nullptr || header.size == 0) {
         return;
     }
-    for (int i = 0; i + params.size < header.size; i += MAP_TUPLE_SIZE) {
+    for (int i = 0; i + MAP_TUPLE_SIZE < header.size; i += MAP_TUPLE_SIZE) {
         std::string key{header.head[i]};
         std::string value{header.head[i + 1]};
         this->header[key] = value;
