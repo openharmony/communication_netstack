@@ -124,7 +124,6 @@ void NetStackChrReport::SetWantParam(AAFwk::Want& want, DataTransChrStats chrSta
 
 void NetStackChrReport::SetUrlWantParam(AAFwk::Want& want, DataTransChrStats& chrStats)
 {
-    chrStats.urlInfo.dstIp = chrStats.tcpInfo.dstIp;
     std::string urlInfoJsonStr;
     SetUrlInfoJsonStr(chrStats.urlInfo, urlInfoJsonStr);
     want.SetParam("PROCESS_NAME", chrStats.processName);
