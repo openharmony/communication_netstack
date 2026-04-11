@@ -24,6 +24,14 @@ WebSocketSendContext::WebSocketSendContext(CJWebsocketProxy *websocketProxy)
 {
 }
 
+WebSocketSendContext::~WebSocketSendContext()
+{
+    if (data != nullptr) {
+        free(data);
+        data = nullptr;
+    }
+}
+
 void WebSocketSendContext::ParseParams(CArrUI8 params, bool stringType)
 {
     // set protocol
@@ -35,6 +43,11 @@ void WebSocketSendContext::ParseParams(CArrUI8 params, bool stringType)
     };
     // set data
     // must have PRE and POST
+    if (params.size() > MAX_LIMIT - LWS_SEND_BUFFER_PRE_PADDING - LWS_SEND_BUFFER_POST_PADDING) {
+        NETSTACK_LOGE("params.size is exceeded the limit");
+        return;
+    }
+
     size_t dataLen = static_cast<size_t>(LWS_SEND_BUFFER_PRE_PADDING + params.size + LWS_SEND_BUFFER_POST_PADDING);
     if (dataLen == 0 || dataLen > MAX_LIMIT) {
         NETSTACK_LOGE("WebSocketSendContext data is exceeded the limit");
