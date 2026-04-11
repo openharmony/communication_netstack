@@ -43,7 +43,7 @@ void WebSocketSendContext::ParseParams(CArrUI8 params, bool stringType)
     };
     // set data
     // must have PRE and POST
-    if (params.size() > MAX_LIMIT - LWS_SEND_BUFFER_PRE_PADDING - LWS_SEND_BUFFER_POST_PADDING) {
+    if (params.size > MAX_LIMIT - LWS_SEND_BUFFER_PRE_PADDING - LWS_SEND_BUFFER_POST_PADDING) {
         NETSTACK_LOGE("params.size is exceeded the limit");
         return;
     }
