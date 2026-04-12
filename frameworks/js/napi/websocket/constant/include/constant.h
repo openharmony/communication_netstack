@@ -124,12 +124,13 @@ public:
 
 class EventName final {
 public:
-    static const char *EVENT_OPEN;
-    static const char *EVENT_MESSAGE;
-    static const char *EVENT_CLOSE;
-    static const char *EVENT_ERROR;
-    static const char *EVENT_DATA_END;
-    static const char *EVENT_HEADER_RECEIVE;
+    static constexpr const char EVENT_OPEN[] = "open";
+    static constexpr const char EVENT_OPEN_INFO[] = "openInfo";
+    static constexpr const char EVENT_MESSAGE[] = "message";
+    static constexpr const char EVENT_CLOSE[] = "close";
+    static constexpr const char EVENT_ERROR[] = "error";
+    static constexpr const char EVENT_DATA_END[] = "dataEnd";
+    static constexpr const char EVENT_HEADER_RECEIVE[] = "headerReceive";
 
 /* websocketServer */
     static const char *EVENT_SERVER_ERROR;

@@ -51,12 +51,6 @@ const char *ContextKey::WEBSOCKET_PROXY_EXCLUSIONS_SEPARATOR = ",";
 const char *ContextKey::CODE = "code";
 const char *ContextKey::REASON = "reason";
 
-const char *EventName::EVENT_OPEN = "open";
-const char *EventName::EVENT_MESSAGE = "message";
-const char *EventName::EVENT_CLOSE = "close";
-const char *EventName::EVENT_ERROR = "error";
-const char *EventName::EVENT_DATA_END = "dataEnd";
-const char *EventName::EVENT_HEADER_RECEIVE = "headerReceive";
 /* websocketServer */
 const char *EventName::EVENT_SERVER_ERROR = "error";
 const char *EventName::EVENT_SERVER_CONNECT = "connect";
