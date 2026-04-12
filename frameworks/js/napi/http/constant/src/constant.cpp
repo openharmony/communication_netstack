@@ -37,6 +37,8 @@ const size_t HttpConstant::MAX_JSON_PARSE_SIZE = 65536;
 const char *const HttpConstant::PARAM_KEY_METHOD = "method";
 const char *const HttpConstant::PARAM_KEY_CUSTOM_METHOD = "customMethod";
 const char *const HttpConstant::PARAM_KEY_EXTRA_DATA = "extraData";
+const char *const HttpConstant::PARAM_KEY_BODY = "body";
+const char *const HttpConstant::PARAM_KEY_QUERY_PARAMS = "queryParams";
 const char *const HttpConstant::PARAM_KEY_HEADER = "header";
 const char *const HttpConstant::PARAM_KEY_MAX_LIMIT = "maxLimit";
 const char *const HttpConstant::PARAM_KEY_READ_TIMEOUT = "readTimeout";
@@ -138,6 +140,7 @@ const char *const HttpConstant::RESPONSE_BODY_TIMING = "responseBodyTiming";
 const char *const HttpConstant::RESPONSE_TOTAL_TIMING = "totalTiming";
 
 const char *const HttpConstant::PARAM_KEY_ADDRESS_FAMILY = "addressFamily";
+
 const char *const HttpConstant::HTTP_ADDRESS_FAMILY_UNSPEC = "DEFAULT";
 const char *const HttpConstant::HTTP_ADDRESS_FAMILY_ONLYV4 = "ONLY_V4";
 const char *const HttpConstant::HTTP_ADDRESS_FAMILY_ONLYV6 = "ONLY_V6";

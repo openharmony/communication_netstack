@@ -247,6 +247,18 @@ private:
 
     bool ParseExtraData(napi_value optionsValue);
 
+    bool ParseBody(napi_value optionsValue);
+
+    bool ParseQueryParams(napi_value optionsValue);
+
+    bool ParseBodyQueryParamsOrExtraData(napi_value optionsValue);
+
+    void ProcessQueryParamArray(const std::string &name, bool encodeName, napi_value value, std::string &queryParams);
+
+    void ProcessQueryParamValue(const std::string &name, bool encodeName, napi_value value, std::string &queryParams);
+
+    void BuildUrlWithQueryParams();
+
     void ParseUsingHttpProxy(napi_value optionsValue);
 
     void ParseCaPath(napi_value optionsValue);
@@ -294,6 +306,7 @@ private:
     std::condition_variable syncCv_;
     bool syncComplete_ = false;
     bool isSyncWait_ = false;
+    bool bodyOrQueryConfigured_ = false;
 };
 } // namespace OHOS::NetStack::Http
 
