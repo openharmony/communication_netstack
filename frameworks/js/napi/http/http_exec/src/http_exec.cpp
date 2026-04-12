@@ -1829,7 +1829,7 @@ bool HttpExec::SetOption(CURL *curl, RequestContext *context, struct curl_slist 
         NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_CUSTOMREQUEST, method.c_str(), context);
     }
 
-    if (!MethodForGet(method) && !context->options.GetBody().empty()) {
+    if ((!MethodForGet(method) || context->bodyOrQueryConfigured_) && !context->options.GetBody().empty()) {
         NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_POST, 1L, context);
         NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_POSTFIELDS, context->options.GetBody().c_str(), context);
         NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_POSTFIELDSIZE, context->options.GetBody().size(), context);
@@ -2433,6 +2433,8 @@ bool HttpExec::SetInterface(CURL *curl, RequestContext *context)
     int32_t netId;
     bool ret = GetInterfaceName(curl, context, interfaceName, netId);
     if (ret && !interfaceName.empty() && netId >= MIN_NON_SYSTEM_NETID) {
+        NETSTACK_LOGI("PathPreference: SetInterface, interfaceName:%{public}s, netId:%{public}d",
+                       interfaceName.c_str(), netId);
         bool ipv6Enable = NetSysIsIpv6Enable(netId);
         bool ipv4Enable = NetSysIsIpv4Enable(netId);
         if (!ipv6Enable) {
