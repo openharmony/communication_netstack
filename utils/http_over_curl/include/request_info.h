@@ -28,6 +28,9 @@ struct TransferCallbacks {
     TransferHandoverInfoCallback handoverInfoCallback;
     SetHandoverInfoCallback setHandoverInfoCallback;
 #endif
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    GetDeadFlowInfoCallback getDeadFlowInfoCallback;
+#endif
 };
 
 struct RequestInfo {
