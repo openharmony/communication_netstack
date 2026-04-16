@@ -47,6 +47,10 @@ static thread_local uint64_t g_moduleId;
 
 static bool g_appIsAtomicService = false;
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+static bool g_appIsDeadFlowResetTarget = false;
+#endif
+
 static std::string g_appBundleName;
 
 static std::once_flag g_isAtomicServiceFlag;
@@ -63,6 +67,12 @@ napi_value HttpModuleExports::InitHttpModule(napi_env env, napi_value exports)
         g_appIsAtomicService = CommonUtils::IsAtomicService(g_appBundleName);
         NETSTACK_LOGI("IsAtomicService bundleName is %{public}s, isAtomicService is %{public}d",
                       g_appBundleName.c_str(), g_appIsAtomicService);
+#if HAS_NETMANAGER_BASE
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+        NetManagerStandard::NetConnClient::GetInstance().IsDeadFlowResetTargetBundle(g_appBundleName,
+            g_appIsDeadFlowResetTarget);
+#endif
+#endif
     });
     auto envWrapper = new (std::nothrow)napi_env;
     if (envWrapper == nullptr) {
@@ -319,6 +329,9 @@ napi_value HttpModuleExports::HttpRequest::Request(napi_env env, napi_callback_i
             context->SetModuleId(g_moduleId);
             context->SetAtomicService(g_appIsAtomicService);
             context->SetBundleName(g_appBundleName);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+            context->SetDeadFlowResetResult(g_appIsDeadFlowResetTarget);
+#endif
             HttpExec::AsyncRunRequest(context);
             return context->IsExecOK();
         },
@@ -339,6 +352,9 @@ napi_value HttpModuleExports::HttpRequest::RequestInStream(napi_env env, napi_ca
             context->SetModuleId(g_moduleId);
             context->SetAtomicService(g_appIsAtomicService);
             context->SetBundleName(g_appBundleName);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+            context->SetDeadFlowResetResult(g_appIsDeadFlowResetTarget);
+#endif
             context->EnableRequestInStream();
             HttpExec::AsyncRunRequest(context);
             return true;
@@ -360,6 +376,9 @@ napi_value HttpModuleExports::HttpRequest::RequestSync(napi_env env, napi_callba
             context->SetModuleId(g_moduleId);
             context->SetAtomicService(g_appIsAtomicService);
             context->SetBundleName(g_appBundleName);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+            context->SetDeadFlowResetResult(g_appIsDeadFlowResetTarget);
+#endif
             context->SetSyncWait(true);
             bool execResult = HttpExec::ExecRequest(context);
             if (execResult) {

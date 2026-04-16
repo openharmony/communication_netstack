@@ -15,8 +15,15 @@
 
 #define private public
 
+#include <arpa/inet.h>
+#include <chrono>
+#include <cstring>
 #include <gtest/gtest.h>
 #include <iostream>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <thread>
+#include <unistd.h>
 
 #include "curl/curl.h"
 #include "netstack_chr_client.h"
@@ -53,6 +60,9 @@ static constexpr const long PROXY_ERROR_DEFAULT_VALUE = 0;
 static constexpr const curl_off_t QUEUE_TIME_DEFAULT_VALUE = 12000;
 static constexpr const long CURL_CODE_DEFAULT_VALUE = 0;
 static constexpr const long REQUEST_START_TIME_DEFAULT_VALUE = 1747359000000;
+static constexpr const int CURL_REQUEST_TIMEOUT_MS = 2000;
+static constexpr const int HTTP_SERVER_BACKLOG = 1;
+static constexpr const int HTTP_SERVER_KEEP_ALIVE_MS = 300;
 
 static constexpr const uint32_t UNACKED_DEFAULT_VALUE = 0;
 static constexpr const uint32_t LAST_DATA_SENT_DEFAULT_VALUE = 1000;
@@ -77,11 +87,102 @@ static constexpr const curl_off_t SIZE_UPLOAD_TEST = 50000;
 static constexpr const curl_off_t SIZE_DOWNLOAD_TEST = 50000;
 static constexpr const curl_off_t TOTAL_TIME_TEST = 501000;
 
-CURL *GetCurlHandle()
+size_t DiscardResponseBody(char *ptr, size_t size, size_t nmemb, void *userdata)
+{
+    (void)ptr;
+    (void)userdata;
+    return size * nmemb;
+}
+
+class LocalHttpServer {
+public:
+    LocalHttpServer()
+    {
+        listenFd_ = socket(AF_INET, SOCK_STREAM, 0);
+        if (listenFd_ < 0) {
+            return;
+        }
+
+        int reuseAddr = 1;
+        (void)setsockopt(listenFd_, SOL_SOCKET, SO_REUSEADDR, &reuseAddr, sizeof(reuseAddr));
+
+        sockaddr_in address{};
+        address.sin_family = AF_INET;
+        address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+        address.sin_port = 0;
+        if (bind(listenFd_, reinterpret_cast<sockaddr *>(&address), sizeof(address)) != 0) {
+            close(listenFd_);
+            listenFd_ = -1;
+            return;
+        }
+
+        socklen_t addressLen = sizeof(address);
+        if (getsockname(listenFd_, reinterpret_cast<sockaddr *>(&address), &addressLen) != 0) {
+            close(listenFd_);
+            listenFd_ = -1;
+            return;
+        }
+        port_ = ntohs(address.sin_port);
+
+        if (listen(listenFd_, HTTP_SERVER_BACKLOG) != 0) {
+            close(listenFd_);
+            listenFd_ = -1;
+            return;
+        }
+
+        serverThread_ = std::thread([listenFd = listenFd_]() {
+            sockaddr_in clientAddress{};
+            socklen_t clientAddressLen = sizeof(clientAddress);
+            int clientFd = accept(listenFd, reinterpret_cast<sockaddr *>(&clientAddress), &clientAddressLen);
+            if (clientFd < 0) {
+                close(listenFd);
+                return;
+            }
+
+            char requestBuffer[1024] = {0};
+            (void)recv(clientFd, requestBuffer, sizeof(requestBuffer), 0);
+            constexpr const char *response = "HTTP/1.1 200 OK\r\n"
+                "Content-Length: 2\r\n"
+                "Content-Type: text/plain\r\n"
+                "Connection: keep-alive\r\n\r\nOK";
+            (void)send(clientFd, response, strlen(response), 0);
+            std::this_thread::sleep_for(std::chrono::milliseconds(HTTP_SERVER_KEEP_ALIVE_MS));
+            close(clientFd);
+            close(listenFd);
+        });
+    }
+
+    ~LocalHttpServer()
+    {
+        if (serverThread_.joinable()) {
+            serverThread_.join();
+        }
+    }
+
+    bool IsReady() const
+    {
+        return listenFd_ >= 0 && port_ != 0 && serverThread_.joinable();
+    }
+
+    std::string GetUrl() const
+    {
+        return std::string("http://127.0.0.1:") + std::to_string(port_) + "/";
+    }
+
+private:
+    int listenFd_ = -1;
+    uint16_t port_ = 0;
+    std::thread serverThread_;
+};
+
+CURL *GetCurlHandle(const std::string &requestUrl = REQUEST_URL, long httpVersion = CURL_HTTP_VERSION_2_0)
 {
     CURL *handle = curl_easy_init();
-    curl_easy_setopt(handle, CURLOPT_URL, REQUEST_URL);
-    curl_easy_setopt(handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
+    if (handle == nullptr) {
+        return nullptr;
+    }
+    curl_easy_setopt(handle, CURLOPT_URL, requestUrl.c_str());
+    curl_easy_setopt(handle, CURLOPT_HTTP_VERSION, httpVersion);
     return handle;
 }
 }
@@ -178,7 +279,7 @@ HWTEST_F(NetStackChrClientTest, NetStackChrClientTestNotReport, TestSize.Level2)
     ChrClient::DataTransChrStats chrStats;
     FillNormalValue(chrStats);
 
-    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats.httpInfo);
+    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats);
     EXPECT_EQ(res, -1);
 }
 
@@ -189,7 +290,7 @@ HWTEST_F(NetStackChrClientTest, NetStackChrClientTestResponseCodeError1, TestSiz
     FillNormalValue(chrStats);
 
     chrStats.httpInfo.responseCode = RESPONSE_ERROR_CODE_BELOW;
-    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats.httpInfo);
+    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats);
     EXPECT_EQ(res, 0);
 }
 
@@ -199,7 +300,7 @@ HWTEST_F(NetStackChrClientTest, NetStackChrClientTestResponseCodeError2, TestSiz
     ChrClient::DataTransChrStats chrStats;
     FillNormalValue(chrStats);
     chrStats.httpInfo.responseCode = RESPONSE_ERROR_CODE_BEYOND;
-    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats.httpInfo);
+    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats);
     EXPECT_EQ(res, 0);
 }
 
@@ -210,7 +311,7 @@ HWTEST_F(NetStackChrClientTest, NetStackChrClientTestOSError, TestSize.Level2)
     FillNormalValue(chrStats);
 
     chrStats.httpInfo.osError = OS_ERROR_CODE;
-    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats.httpInfo);
+    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats);
     EXPECT_EQ(res, 0);
 }
 
@@ -221,7 +322,7 @@ HWTEST_F(NetStackChrClientTest, NetStackChrClientTestProxyError, TestSize.Level2
     FillNormalValue(chrStats);
 
     chrStats.httpInfo.proxyError = PROXY_ERROR_CODE;
-    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats.httpInfo);
+    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats);
     EXPECT_EQ(res, 0);
 }
 
@@ -232,7 +333,7 @@ HWTEST_F(NetStackChrClientTest, NetStackChrClientTestCurlCodeError, TestSize.Lev
     FillNormalValue(chrStats);
 
     chrStats.httpInfo.curlCode = CURL_ERROR_CODE;
-    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats.httpInfo);
+    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats);
     EXPECT_EQ(res, 0);
 }
 
@@ -245,8 +346,49 @@ HWTEST_F(NetStackChrClientTest, NetStackChrClientTestShortRequestButTimeout, Tes
     chrStats.httpInfo.sizeUpload = SIZE_UPLOAD_TEST;
     chrStats.httpInfo.sizeDownload = SIZE_DOWNLOAD_TEST;
     chrStats.httpInfo.totalTime = TOTAL_TIME_TEST;
-    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats.httpInfo);
+    int res = ChrClient::NetStackChrClient::GetInstance().ShouldReportHttpAbnormalEvent(chrStats);
     EXPECT_EQ(res, 0);
+}
+
+HWTEST_F(NetStackChrClientTest, NetStackChrClientTestSkipReportWhenRequestSuccess, TestSize.Level2)
+{
+    LocalHttpServer server;
+    ASSERT_TRUE(server.IsReady());
+
+    CURL *handle = GetCurlHandle(server.GetUrl(), CURL_HTTP_VERSION_1_1);
+    ASSERT_NE(handle, nullptr);
+    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, DiscardResponseBody);
+    curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS, CURL_REQUEST_TIMEOUT_MS);
+    curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1L);
+
+    CURLcode curlCode = curl_easy_perform(handle);
+    ASSERT_EQ(curlCode, CURLE_OK);
+
+    auto &client = ChrClient::NetStackChrClient::GetInstance();
+    ChrClient::DataTransHttpInfo httpInfo{};
+    client.GetHttpInfoFromCurl(handle, httpInfo);
+    ASSERT_EQ(httpInfo.responseCode, RESPONSE_CODE_DEFAULT_VALUE);
+
+    curl_socket_t sockfd = CURL_SOCKET_BAD;
+    curl_easy_getinfo(handle, CURLINFO_ACTIVESOCKET, &sockfd);
+    ASSERT_NE(sockfd, CURL_SOCKET_BAD);
+
+    ChrClient::DataTransTcpInfo tcpInfo{};
+    ASSERT_EQ(client.GetTcpInfoFromSock(sockfd, tcpInfo), 0);
+    ASSERT_EQ(tcpInfo.ipType, AF_INET);
+
+    client.GetDfxInfoFromCurlHandleAndReport(handle, CURLE_OK);
+
+    ChrClient::DataTransChrStats chrStats{};
+    FillNormalValue(chrStats);
+    chrStats.tcpInfo.ipType = AF_INET;
+    int firstRet = client.netstackChrReport_.ReportCommonEvent(chrStats);
+    int secondRet = client.netstackChrReport_.ReportCommonEvent(chrStats);
+
+    EXPECT_EQ(firstRet, 0);
+    EXPECT_EQ(secondRet, 1);
+
+    curl_easy_cleanup(handle);
 }
 
 HWTEST_F(NetStackChrClientTest, NetStackChrClientTestReportTimeLimits, TestSize.Level2)

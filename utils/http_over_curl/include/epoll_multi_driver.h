@@ -67,6 +67,9 @@ private:
     void EpollSocketCallback(int fd);
 
     void CheckMultiInfo();
+#ifdef HAS_NETSTACK_CHR
+    void HandleDfx(CURLMsg *message, CURL *easyHandle, RequestInfo *requestInfo);
+#endif
     void HandleCurlDoneMessage(CURLMsg *message);
 
     void Initialize();
