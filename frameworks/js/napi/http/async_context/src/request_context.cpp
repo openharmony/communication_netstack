@@ -543,6 +543,59 @@ void RequestContext::ParseUsingHttpProxy(napi_value optionsValue)
     options.SetUsingHttpProxyType(UsingHttpProxyType::USE_SPECIFIED);
 }
 
+void RequestContext::ParseSocks5Proxy(napi_value optionsValue)
+{
+    if (!NapiUtils::HasNamedProperty(GetEnv(), optionsValue, HttpConstant::PARAM_KEY_USING_SOCKS5_PROXY)) {
+        NETSTACK_LOGD("no socks5 proxy config");
+        return;
+    }
+    napi_value proxyValue =
+        NapiUtils::GetNamedProperty(GetEnv(), optionsValue, HttpConstant::PARAM_KEY_USING_SOCKS5_PROXY);
+    if (NapiUtils::GetValueType(GetEnv(), proxyValue) != napi_object) {
+        NETSTACK_LOGE("socks5 proxy type error");
+        return;
+    }
+
+    std::string host = NapiUtils::GetStringPropertyUtf8(GetEnv(), proxyValue, HttpConstant::SOCKS5_PROXY_KEY_HOST);
+    int32_t port = NapiUtils::GetInt32Property(GetEnv(), proxyValue, HttpConstant::SOCKS5_PROXY_KEY_PORT);
+    if (host.empty() || port <= 0) {
+        NETSTACK_LOGE("socks5 proxy host or port invalid");
+        return;
+    }
+
+    Socks5DnsStrategy dnsStrategy = Socks5DnsStrategy::UNSPECIFIED;
+    if (NapiUtils::HasNamedProperty(GetEnv(), proxyValue, HttpConstant::SOCKS5_PROXY_KEY_DNS_STRATEGY)) {
+        uint32_t strategyValue = NapiUtils::GetUint32Property(GetEnv(), proxyValue,
+            HttpConstant::SOCKS5_PROXY_KEY_DNS_STRATEGY);
+        dnsStrategy = strategyValue == 0 ? Socks5DnsStrategy::SYSTEM_MODE : Socks5DnsStrategy::PROXY_MODE;
+    }
+
+    std::string exclusionList;
+    if (NapiUtils::HasNamedProperty(GetEnv(), proxyValue, HttpConstant::SOCKS5_PROXY_KEY_EXCLUSION_LIST)) {
+        napi_value exclusionListValue =
+            NapiUtils::GetNamedProperty(GetEnv(), proxyValue, HttpConstant::SOCKS5_PROXY_KEY_EXCLUSION_LIST);
+        uint32_t listLength = NapiUtils::GetArrayLength(GetEnv(), exclusionListValue);
+        for (uint32_t i = 0; i < listLength; ++i) {
+            napi_value exclusionValue = NapiUtils::GetArrayElement(GetEnv(), exclusionListValue, i);
+            std::string exclusion = NapiUtils::GetStringFromValueUtf8(GetEnv(), exclusionValue);
+            if (i != 0) {
+                exclusionList = exclusionList + HttpConstant::HTTP_PROXY_EXCLUSIONS_SEPARATOR;
+            }
+            exclusionList += exclusion;
+        }
+    }
+
+    NapiUtils::SecureData username;
+    NapiUtils::SecureData password;
+    if (NapiUtils::HasNamedProperty(GetEnv(), proxyValue, HttpConstant::SOCKS5_PROXY_KEY_USERNAME) &&
+        NapiUtils::HasNamedProperty(GetEnv(), proxyValue, HttpConstant::SOCKS5_PROXY_KEY_PASSWORD)) {
+        NapiUtils::GetSecureDataPropertyUtf8(GetEnv(), proxyValue, HttpConstant::SOCKS5_PROXY_KEY_PASSWORD, password);
+        NapiUtils::GetSecureDataPropertyUtf8(GetEnv(), proxyValue, HttpConstant::SOCKS5_PROXY_KEY_USERNAME, username);
+    }
+
+    options.SetSocks5Proxy(host, port, username, password, dnsStrategy, exclusionList);
+}
+
 bool RequestContext::GetRequestBody(napi_value extraData)
 {
     /* if body is empty, return false, or curl will wait for body */
@@ -640,6 +693,7 @@ void RequestContext::UrlAndOptions(napi_value urlValue, napi_value optionsValue)
 
     ParseNumberOptions(optionsValue);
     ParseUsingHttpProxy(optionsValue);
+    ParseSocks5Proxy(optionsValue);
     ParseClientCert(optionsValue);
     ParseMaxRedirects(optionsValue);
 

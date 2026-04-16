@@ -1309,7 +1309,15 @@ unsigned long GetTlsVersion(TlsVersion tlsVersionMin, TlsVersion tlsVersionMax)
     return tlsVersion;
 }
 
-bool HttpExec::SetOtherOption(CURL *curl, OHOS::NetStack::Http::RequestContext *context)
+bool HttpExec::SetProxyOption(CURL *curl, OHOS::NetStack::Http::RequestContext *context)
+{
+    if (context->options.HasSocks5Proxy()) {
+        return SetSocks5ProxyOption(curl, context);
+    }
+    return SetHttpProxyOption(curl, context);
+}
+
+bool HttpExec::SetHttpProxyOption(CURL *curl, OHOS::NetStack::Http::RequestContext *context)
 {
     std::string url = context->options.GetUrl();
     std::string host, exclusions;
@@ -1328,6 +1336,53 @@ bool HttpExec::SetOtherOption(CURL *curl, OHOS::NetStack::Http::RequestContext *
             NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_PROXYUSERNAME, username.c_str(), context);
             NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_PROXYPASSWORD, password.c_str(), context);
         }
+    }
+    return true;
+}
+
+bool HttpExec::SetSocks5ProxyOption(CURL *curl, OHOS::NetStack::Http::RequestContext *context)
+{
+    std::string url = context->options.GetUrl();
+    std::string socks5Host;
+    int32_t socks5Port = 0;
+    NapiUtils::SecureData socks5Username;
+    NapiUtils::SecureData socks5Password;
+    Socks5DnsStrategy dnsStrategy = Socks5DnsStrategy::UNSPECIFIED;
+    std::string exclusionList;
+    context->options.GetSocks5Proxy(socks5Host, socks5Port, socks5Username, socks5Password,
+        dnsStrategy, exclusionList);
+
+    if (!CommonUtils::IsHostNameExcluded(url, exclusionList, ",")) {
+        NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_PROXY, socks5Host.c_str(), context);
+        NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_PROXYPORT, socks5Port, context);
+        auto proxyType = CURLPROXY_SOCKS5;
+        switch (dnsStrategy) {
+            case Socks5DnsStrategy::PROXY_MODE:
+                proxyType = CURLPROXY_SOCKS5_HOSTNAME;
+                break;
+            case Socks5DnsStrategy::SYSTEM_MODE:
+                proxyType = CURLPROXY_SOCKS5;
+                break;
+            case Socks5DnsStrategy::UNSPECIFIED:
+                // Default to system mode. So the only exception is socks5h:// scheme.
+                proxyType = socks5Host.find("socks5h://") != std::string::npos ?
+                    CURLPROXY_SOCKS5_HOSTNAME : CURLPROXY_SOCKS5;
+                break;
+        }
+        NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_PROXYTYPE, proxyType, context);
+
+        if (!socks5Username.empty() && !socks5Password.empty()) {
+            NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_PROXYUSERNAME, socks5Username.c_str(), context);
+            NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_PROXYPASSWORD, socks5Password.c_str(), context);
+        }
+    }
+    return true;
+}
+
+bool HttpExec::SetOtherOption(CURL *curl, OHOS::NetStack::Http::RequestContext *context)
+{
+    if (!SetProxyOption(curl, context)) {
+        return false;
     }
     const auto &tlsOption = context->options.GetTlsOption();
     unsigned long tlsVersion = GetTlsVersion(tlsOption.tlsVersionMin, tlsOption.tlsVersionMax);

@@ -267,6 +267,8 @@ private:
 
     void ParseUsingHttpProxy(napi_value optionsValue);
 
+    void ParseSocks5Proxy(napi_value optionsValue);
+
     void ParseCaPath(napi_value optionsValue);
 
     void ParseCaData(napi_value optionsValue);
