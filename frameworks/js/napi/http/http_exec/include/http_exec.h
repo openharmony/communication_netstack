@@ -172,6 +172,12 @@ public:
 private:
     static bool SetOption(CURL *curl, RequestContext *context, struct curl_slist *requestHeader);
 
+    static bool SetProxyOption(CURL *curl, RequestContext *context);
+
+    static bool SetHttpProxyOption(CURL *curl, RequestContext *context);
+
+    static bool SetSocks5ProxyOption(CURL *curl, RequestContext *context);
+
     static bool SetOtherOption(CURL *curl, RequestContext *context);
 
     static bool SetOtherFixedOption(CURL *curl, RequestContext *context);

@@ -529,4 +529,33 @@ int HttpRequestOptions::GetInactivityMs() const
 {
     return inactivityMs_;
 }
+
+void HttpRequestOptions::SetSocks5Proxy(const std::string &host, int32_t port,
+    const NapiUtils::SecureData &username, const NapiUtils::SecureData &password,
+    Socks5DnsStrategy dnsStrategy, const std::string &exclusionList)
+{
+    socks5ProxyHost_ = host;
+    socks5ProxyPort_ = port;
+    socks5ProxyUsername_ = username;
+    socks5ProxyPassword_ = password;
+    socks5ProxyDnsStrategy_ = dnsStrategy;
+    socks5ProxyExclusionList_ = exclusionList;
+}
+
+bool HttpRequestOptions::HasSocks5Proxy() const
+{
+    return !socks5ProxyHost_.empty() && socks5ProxyPort_ > 0;
+}
+
+void HttpRequestOptions::GetSocks5Proxy(std::string &host, int32_t &port,
+    NapiUtils::SecureData &username, NapiUtils::SecureData &password,
+    Socks5DnsStrategy &dnsStrategy, std::string &exclusionList) const
+{
+    host = socks5ProxyHost_;
+    port = socks5ProxyPort_;
+    username = socks5ProxyUsername_;
+    password = socks5ProxyPassword_;
+    dnsStrategy = socks5ProxyDnsStrategy_;
+    exclusionList = socks5ProxyExclusionList_;
+}
 } // namespace OHOS::NetStack::Http
