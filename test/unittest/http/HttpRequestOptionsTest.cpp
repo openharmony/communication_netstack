@@ -498,4 +498,218 @@ HWTEST_F(HttpRequestOptionsTest, SniHostNameTest001, TestSize.Level1)
     string sniHostName = requestOptions.GetSniHostName();
     EXPECT_NE(sniHostName, "Example.com");
 }
+
+HWTEST_F(HttpRequestOptionsTest, SetSocks5ProxyTest001, TestSize.Level1)
+{
+    HttpRequestOptions requestOptions;
+
+    std::string host = "127.0.0.1";
+    int32_t port = 1080;
+    NapiUtils::SecureData username;
+    NapiUtils::SecureData password;
+    Socks5DnsStrategy dnsStrategy = Socks5DnsStrategy::UNSPECIFIED;
+    std::string exclusionList = "";
+
+    requestOptions.SetSocks5Proxy(host, port, username, password, dnsStrategy, exclusionList);
+
+    std::string retrievedHost;
+    int32_t retrievedPort = 0;
+    NapiUtils::SecureData retrievedUsername;
+    NapiUtils::SecureData retrievedPassword;
+    Socks5DnsStrategy retrievedDnsStrategy;
+    std::string retrievedExclusionList;
+    requestOptions.GetSocks5Proxy(retrievedHost, retrievedPort, retrievedUsername, retrievedPassword,
+        retrievedDnsStrategy, retrievedExclusionList);
+
+    EXPECT_EQ(retrievedHost, host);
+    EXPECT_EQ(retrievedPort, port);
+    EXPECT_EQ(retrievedDnsStrategy, dnsStrategy);
+    EXPECT_EQ(retrievedExclusionList, exclusionList);
+}
+
+HWTEST_F(HttpRequestOptionsTest, SetSocks5ProxyTest002, TestSize.Level1)
+{
+    HttpRequestOptions requestOptions;
+
+    std::string host = "socks5.example.com";
+    int32_t port = 1080;
+    NapiUtils::SecureData username;
+    NapiUtils::SecureData password;
+    Socks5DnsStrategy dnsStrategy = Socks5DnsStrategy::SYSTEM_MODE;
+    std::string exclusionList = "localhost,127.0.0.1";
+
+    requestOptions.SetSocks5Proxy(host, port, username, password, dnsStrategy, exclusionList);
+
+    std::string retrievedHost;
+    int32_t retrievedPort = 0;
+    NapiUtils::SecureData retrievedUsername;
+    NapiUtils::SecureData retrievedPassword;
+    Socks5DnsStrategy retrievedDnsStrategy;
+    std::string retrievedExclusionList;
+    requestOptions.GetSocks5Proxy(retrievedHost, retrievedPort, retrievedUsername, retrievedPassword,
+        retrievedDnsStrategy, retrievedExclusionList);
+
+    EXPECT_EQ(retrievedHost, host);
+    EXPECT_EQ(retrievedPort, port);
+    EXPECT_EQ(retrievedDnsStrategy, dnsStrategy);
+    EXPECT_EQ(retrievedExclusionList, exclusionList);
+}
+
+HWTEST_F(HttpRequestOptionsTest, SetSocks5ProxyTest003, TestSize.Level1)
+{
+    HttpRequestOptions requestOptions;
+
+    std::string host = "socks5.example.com";
+    int32_t port = 1080;
+    NapiUtils::SecureData username("testuser");
+    NapiUtils::SecureData password("testpass");
+    Socks5DnsStrategy dnsStrategy = Socks5DnsStrategy::PROXY_MODE;
+    std::string exclusionList = "localhost,127.0.0.1,*.local";
+
+    requestOptions.SetSocks5Proxy(host, port, username, password, dnsStrategy, exclusionList);
+
+    std::string retrievedHost;
+    int32_t retrievedPort = 0;
+    NapiUtils::SecureData retrievedUsername;
+    NapiUtils::SecureData retrievedPassword;
+    Socks5DnsStrategy retrievedDnsStrategy;
+    std::string retrievedExclusionList;
+    requestOptions.GetSocks5Proxy(retrievedHost, retrievedPort, retrievedUsername, retrievedPassword,
+        retrievedDnsStrategy, retrievedExclusionList);
+
+    EXPECT_EQ(retrievedHost, host);
+    EXPECT_EQ(retrievedPort, port);
+    EXPECT_EQ(retrievedDnsStrategy, dnsStrategy);
+    EXPECT_EQ(retrievedExclusionList, exclusionList);
+}
+
+HWTEST_F(HttpRequestOptionsTest, SetSocks5ProxyTest004, TestSize.Level1)
+{
+    HttpRequestOptions requestOptions;
+
+    std::string host = "socks5.example.com";
+    int32_t port = 1080;
+    NapiUtils::SecureData username;
+    NapiUtils::SecureData password;
+    Socks5DnsStrategy dnsStrategy = Socks5DnsStrategy::UNSPECIFIED;
+    std::string exclusionList = "";
+
+    requestOptions.SetSocks5Proxy(host, port, username, password, dnsStrategy, exclusionList);
+
+    EXPECT_TRUE(requestOptions.HasSocks5Proxy());
+}
+
+HWTEST_F(HttpRequestOptionsTest, SetSocks5ProxyTest005, TestSize.Level1)
+{
+    HttpRequestOptions requestOptions;
+
+    EXPECT_FALSE(requestOptions.HasSocks5Proxy());
+}
+
+HWTEST_F(HttpRequestOptionsTest, SetSocks5ProxyTest006, TestSize.Level1)
+{
+    HttpRequestOptions requestOptions;
+
+    std::string host = "";
+    int32_t port = 1080;
+    NapiUtils::SecureData username;
+    NapiUtils::SecureData password;
+    Socks5DnsStrategy dnsStrategy = Socks5DnsStrategy::UNSPECIFIED;
+    std::string exclusionList = "";
+
+    requestOptions.SetSocks5Proxy(host, port, username, password, dnsStrategy, exclusionList);
+
+    std::string retrievedHost;
+    int32_t retrievedPort = 0;
+    NapiUtils::SecureData retrievedUsername;
+    NapiUtils::SecureData retrievedPassword;
+    Socks5DnsStrategy retrievedDnsStrategy;
+    std::string retrievedExclusionList;
+    requestOptions.GetSocks5Proxy(retrievedHost, retrievedPort, retrievedUsername, retrievedPassword,
+        retrievedDnsStrategy, retrievedExclusionList);
+
+    EXPECT_EQ(retrievedHost, host);
+    EXPECT_EQ(retrievedPort, 0);
+}
+
+HWTEST_F(HttpRequestOptionsTest, SetSocks5ProxyTest007, TestSize.Level1)
+{
+    HttpRequestOptions requestOptions;
+
+    std::string host = "socks5.example.com";
+    int32_t port = 0;
+    NapiUtils::SecureData username;
+    NapiUtils::SecureData password;
+    Socks5DnsStrategy dnsStrategy = Socks5DnsStrategy::UNSPECIFIED;
+    std::string exclusionList = "";
+
+    requestOptions.SetSocks5Proxy(host, port, username, password, dnsStrategy, exclusionList);
+
+    std::string retrievedHost;
+    int32_t retrievedPort = 0;
+    NapiUtils::SecureData retrievedUsername;
+    NapiUtils::SecureData retrievedPassword;
+    Socks5DnsStrategy retrievedDnsStrategy;
+    std::string retrievedExclusionList;
+    requestOptions.GetSocks5Proxy(retrievedHost, retrievedPort, retrievedUsername, retrievedPassword,
+        retrievedDnsStrategy, retrievedExclusionList);
+
+    EXPECT_EQ(retrievedHost, host);
+    EXPECT_EQ(retrievedPort, port);
+}
+
+HWTEST_F(HttpRequestOptionsTest, SetSocks5ProxyTest008, TestSize.Level1)
+{
+    HttpRequestOptions requestOptions;
+
+    std::string host = "socks5.example.com";
+    int32_t port = 1080;
+    NapiUtils::SecureData username;
+    NapiUtils::SecureData password;
+    Socks5DnsStrategy dnsStrategy = Socks5DnsStrategy::UNSPECIFIED;
+    std::string exclusionList = "";
+
+    requestOptions.SetSocks5Proxy(host, port, username, password, dnsStrategy, exclusionList);
+
+    std::string retrievedHost;
+    int32_t retrievedPort = 0;
+    NapiUtils::SecureData retrievedUsername;
+    NapiUtils::SecureData retrievedPassword;
+    Socks5DnsStrategy retrievedDnsStrategy;
+    std::string retrievedExclusionList;
+    requestOptions.GetSocks5Proxy(retrievedHost, retrievedPort, retrievedUsername, retrievedPassword,
+        retrievedDnsStrategy, retrievedExclusionList);
+
+    EXPECT_EQ(retrievedHost, host);
+    EXPECT_EQ(retrievedPort, port);
+    EXPECT_EQ(retrievedDnsStrategy, Socks5DnsStrategy::UNSPECIFIED);
+    EXPECT_EQ(retrievedExclusionList, exclusionList);
+}
+
+HWTEST_F(HttpRequestOptionsTest, SetSocks5ProxyTest009, TestSize.Level1)
+{
+    HttpRequestOptions requestOptions;
+
+    std::string host = "socks5h://socks5.example.com";
+    int32_t port = 1080;
+    NapiUtils::SecureData username;
+    NapiUtils::SecureData password;
+    Socks5DnsStrategy dnsStrategy = Socks5DnsStrategy::UNSPECIFIED;
+    std::string exclusionList = "";
+
+    requestOptions.SetSocks5Proxy(host, port, username, password, dnsStrategy, exclusionList);
+
+    std::string retrievedHost;
+    int32_t retrievedPort = 0;
+    NapiUtils::SecureData retrievedUsername;
+    NapiUtils::SecureData retrievedPassword;
+    Socks5DnsStrategy retrievedDnsStrategy;
+    std::string retrievedExclusionList;
+    requestOptions.GetSocks5Proxy(retrievedHost, retrievedPort, retrievedUsername, retrievedPassword,
+        retrievedDnsStrategy, retrievedExclusionList);
+
+    EXPECT_EQ(retrievedHost, host);
+    EXPECT_EQ(retrievedPort, port);
+    EXPECT_EQ(retrievedDnsStrategy, Socks5DnsStrategy::UNSPECIFIED);
+}
 } // namespace
