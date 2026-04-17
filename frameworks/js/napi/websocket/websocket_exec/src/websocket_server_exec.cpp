@@ -630,13 +630,13 @@ void WebSocketServerExec::UpdataClientList(const std::string &ip)
 
 void WebSocketServerExec::AddBanList(const std::string &ip)
 {
-    std::shared_lock<std::shared_mutex> lock(banListMutex_);
+    std::unique_lock<std::shared_mutex> lock(banListMutex_);
     banList[ip] = GetCurrentSecond() + ONE_MINUTE_IN_SEC;
 }
 
 bool WebSocketServerExec::IsIpInBanList(const std::string &ip)
 {
-    std::shared_lock<std::shared_mutex> lock(banListMutex_);
+    std::unique_lock<std::shared_mutex> lock(banListMutex_);
     auto it = banList.find(ip);
     if (it != banList.end()) {
         auto now = GetCurrentSecond();
