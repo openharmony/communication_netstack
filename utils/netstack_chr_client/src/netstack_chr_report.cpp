@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -104,8 +104,16 @@ void NetStackChrReport::LogHttpInfo(const DataTransChrStats& chrStats)
     std::string urlInfoJsonStr;
     SetHttpInfoJsonStr(chrStats.httpInfo, httpInfoJsonStr);
     SetTcpInfoJsonStr(chrStats.tcpInfo, tcpInfoJsonStr);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    std::string httpDeadFlowInfoJsonStr;
+    SetHttpDeadFlowInfoJsonStr(chrStats.httpDeadFlowInfo, httpDeadFlowInfoJsonStr);
+    NETSTACK_LOGD("LogHttpInfo: {PROCESS_NAME: %{public}s, HTTP_INFO: %{public}s, TCP_INFO: %{public}s"
+        ", DEADFLOWINFO: %{public}s}", chrStats.processName.c_str(), httpInfoJsonStr.c_str(),
+        tcpInfoJsonStr.c_str(), httpDeadFlowInfoJsonStr.c_str());
+#else
     NETSTACK_LOGD("LogHttpInfo: {PROCESS_NAME: %{public}s, HTTP_INFO: %{public}s, TCP_INFO: %{public}s}",
         chrStats.processName.c_str(), httpInfoJsonStr.c_str(), tcpInfoJsonStr.c_str());
+#endif
 }
 
 void NetStackChrReport::SetWantParam(AAFwk::Want& want, DataTransChrStats chrStats)
@@ -114,17 +122,26 @@ void NetStackChrReport::SetWantParam(AAFwk::Want& want, DataTransChrStats chrSta
     std::string tcpInfoJsonStr;
     SetHttpInfoJsonStr(chrStats.httpInfo, httpInfoJsonStr);
     SetTcpInfoJsonStr(chrStats.tcpInfo, tcpInfoJsonStr);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    std::string httpDeadFlowInfoJsonStr;
+    SetHttpDeadFlowInfoJsonStr(chrStats.httpDeadFlowInfo, httpDeadFlowInfoJsonStr);
+#endif
 
     want.SetParam("PROCESS_NAME", chrStats.processName);
     want.SetParam("DATA_TRANS_HTTP_INFO", httpInfoJsonStr);
     want.SetParam("DATA_TRANS_TCP_INFO", tcpInfoJsonStr);
-    NETSTACK_LOGI("BUSSINESS_ISSUE_HTTP: {PROCESS_NAME: %{public}s, HTTP_INFO: %{public}s, TCP_INFO: %{public}s}",
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    NETSTACK_LOGI("BUSSINESS_ISSUE_HTTP: {PROCESS_NAME: %{public}s, HTTP_INFO: %{public}s, TCP_INFO: %{public}s"
+        ", DEADFLOWINFO: %{public}s}", chrStats.processName.c_str(), httpInfoJsonStr.c_str(),
+        tcpInfoJsonStr.c_str(), httpDeadFlowInfoJsonStr.c_str());
+#else
+    NETSTACK_LOGI("BUSSINESS_ISSUE_HTTP: {PROCESS_NAME: %{public}s, HTTP_INFO: %{public}s, TCP_INFO: %{public}s",
         chrStats.processName.c_str(), httpInfoJsonStr.c_str(), tcpInfoJsonStr.c_str());
+#endif
 }
 
 void NetStackChrReport::SetUrlWantParam(AAFwk::Want& want, DataTransChrStats& chrStats)
 {
-    chrStats.urlInfo.dstIp = chrStats.tcpInfo.dstIp;
     std::string urlInfoJsonStr;
     SetUrlInfoJsonStr(chrStats.urlInfo, urlInfoJsonStr);
     want.SetParam("PROCESS_NAME", chrStats.processName);
@@ -195,3 +212,16 @@ void NetStackChrReport::SetTcpInfoJsonStr(DataTransTcpInfo tcpInfo, std::string&
        << ",{\"dst_port\":" << tcpInfo.dstPort << "}";
     tcpInfoJsonStr = ss.str();
 }
+
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+void NetStackChrReport::SetHttpDeadFlowInfoJsonStr(const HttpDeadFlowInfo& deadInfo, std::string& deadInfoJsonStr)
+{
+    std::stringstream ss;
+    ss << "{\"isReused\":" << deadInfo.isReused
+       << ",\"retryCount\":" << deadInfo.retryCount
+       << ",\"sock\":" << deadInfo.sock
+       << ",\"sPort\":" << deadInfo.sPortStr
+       << ",\"tdiff\":" << deadInfo.tdiff << "}";
+    deadInfoJsonStr = ss.str();
+}
+#endif

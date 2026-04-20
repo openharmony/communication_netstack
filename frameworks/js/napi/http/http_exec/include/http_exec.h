@@ -189,7 +189,9 @@ private:
     static bool SetDnsResolvOption(CURL *curl, RequestContext *context);
 
     static bool SetTCPOption(CURL *curl, RequestContext *context);
-
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    static bool SetDeadFlowResetOption(CURL *curl, RequestContext *context);
+#endif
     static bool SetCertPinnerOption(CURL *curl, RequestContext *context);
 
     static bool SetPreRequestOption(CURL *curl, RequestContext *context);

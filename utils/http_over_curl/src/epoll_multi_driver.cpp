@@ -125,6 +125,8 @@ void EpollMultiDriver::IncomingRequestCallback()
         auto ret = curl_multi_add_handle(multi_, request->easyHandle);
         if (ret != CURLM_OK) {
             NETSTACK_LOGE("curl_multi_add_handle err, ret = %{public}d %{public}s", ret, curl_multi_strerror(ret));
+            ongoingRequests_.erase(request->easyHandle);
+            delete request;
             continue;
         }
         
@@ -202,26 +204,36 @@ __attribute__((no_sanitize("cfi"))) void EpollMultiDriver::CheckMultiInfo()
     }
 }
 
+#ifdef HAS_NETSTACK_CHR
+void EpollMultiDriver::HandleDfx(CURLMsg *message, CURL *easyHandle, RequestInfo *requestInfo)
+{
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    HttpDeadFlowInfo deadFlowInfo;
+    const HttpDeadFlowInfo *deadFlowInfoPtr = nullptr;
+    if (requestInfo != nullptr && requestInfo->callbacks.getDeadFlowInfoCallback) {
+        deadFlowInfo = requestInfo->callbacks.getDeadFlowInfoCallback(requestInfo->opaqueData);
+        deadFlowInfoPtr = &deadFlowInfo;
+    }
+    ChrClient::NetStackChrClient::GetInstance().GetDfxInfoFromCurlHandleAndReport(easyHandle, message->data.result,
+        deadFlowInfoPtr);
+#else
+    ChrClient::NetStackChrClient::GetInstance().GetDfxInfoFromCurlHandleAndReport(easyHandle, message->data.result);
+#endif
+    ChrClient::NetStackChrClient::GetInstance().GetDfxUrlInfoFromCurlHandleAndReport(easyHandle, message->data.result);
+}
+#endif
+
 void EpollMultiDriver::HandleCurlDoneMessage(CURLMsg *message)
 {
     auto easyHandle = message->easy_handle;
+    auto requestInfo = ongoingRequests_[easyHandle];
 #ifdef HAS_NETSTACK_CHR
-#if ENABLE_HTTP_INTERCEPT
-    long responseCode = 0;
-    curl_easy_getinfo(easyHandle, CURLINFO_RESPONSE_CODE, &responseCode);
-    if (responseCode < HTTP_STATUS_REDIRECT_START || responseCode >= HTTP_STATUS_CLIENT_ERROR_START)
-#endif
-    {
-        ChrClient::NetStackChrClient::GetInstance().GetDfxInfoFromCurlHandleAndReport(easyHandle, message->data.result);
-        ChrClient::NetStackChrClient::GetInstance()
-            .GetDfxUrlInfoFromCurlHandleAndReport(easyHandle, message->data.result);
-    }
+    HandleDfx(message, easyHandle, requestInfo);
 #endif
     if (!easyHandle) {
         return;
     }
     curl_multi_remove_handle(multi_, easyHandle);
-    auto requestInfo = ongoingRequests_[easyHandle];
     ongoingRequests_.erase(easyHandle);
 #ifdef HTTP_HANDOVER_FEATURE
     if (netHandoverHandler_ && netHandoverHandler_->ProcessRequestErr(ongoingRequests_, multi_, requestInfo, message)) {
@@ -230,6 +242,8 @@ void EpollMultiDriver::HandleCurlDoneMessage(CURLMsg *message)
 #endif
     std::function<void()> handleCompletion = std::bind(&EpollMultiDriver::HandleCompletion, this, message, requestInfo);
 #if ENABLE_HTTP_INTERCEPT
+    long responseCode = 0;
+    curl_easy_getinfo(easyHandle, CURLINFO_RESPONSE_CODE, &responseCode);
     char *location = nullptr;
     curl_easy_getinfo(easyHandle, CURLINFO_REDIRECT_URL, &location);
     NETSTACK_LOGD("Redirect responseCode: %{public}d", static_cast<int>(responseCode));

@@ -799,6 +799,23 @@ void RequestContext::UrlAndOptions(napi_value urlValue, napi_value optionsValue)
     ParseInactivityMs(optionsValue);
 }
 
+void RequestContext::SetEnableAutoCookie(bool enableAutoCookie)
+{
+    options.SetEnableAutoCookie(enableAutoCookie);
+}
+
+void RequestContext::SetShareHandle(std::shared_ptr<CURLSH> shareHandle)
+{
+    std::lock_guard<std::mutex> lock(shareHandleMutex_);
+    shareHandle_ = std::move(shareHandle);
+}
+
+std::shared_ptr<CURLSH> RequestContext::GetShareHandle() const
+{
+    std::lock_guard<std::mutex> lock(shareHandleMutex_);
+    return shareHandle_;
+}
+
 bool RequestContext::IsUsingCache() const
 {
     return usingCache_;
@@ -1232,6 +1249,18 @@ std::string RequestContext::GetBundleName() const
     return bundleName_;
 }
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+void RequestContext::SetDeadFlowResetResult(bool result)
+{
+    isDeadFlowResetTargetApp_ = result;
+}
+
+bool RequestContext::IsDeadFlowResetTargetApp()
+{
+    return isDeadFlowResetTargetApp_;
+}
+#endif
+
 void RequestContext::SetCurlHandle(CURL *handle)
 {
     curlHandle_ = handle;
@@ -1332,6 +1361,23 @@ void RequestContext::SetRequestHandoverInfo(const HttpHandoverInfo &httpHandover
 std::string RequestContext::GetRequestHandoverInfo()
 {
     return httpHandoverInfoStr_;
+}
+#endif
+
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+void RequestContext::SetHttpDeadFlowInfo(int32_t port, bool reused, int32_t socket,
+    int32_t retries, int32_t diff)
+{
+    deadFlowInfo_.sPortStr += std::to_string(port) + ";";
+    deadFlowInfo_.isReused = reused;
+    deadFlowInfo_.sock = socket;
+    deadFlowInfo_.retryCount = retries;
+    deadFlowInfo_.tdiff += std::to_string(diff) + ";";
+}
+
+const HttpDeadFlowInfo &RequestContext::GetHttpDeadFlowInfo()
+{
+    return deadFlowInfo_;
 }
 #endif
 

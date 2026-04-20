@@ -21,11 +21,14 @@
 #include "http_async_work.h"
 #include "http_exec.h"
 
+#include "curl/curl.h"
 #include "module_template.h"
 #include "netstack_log.h"
 #include "netstack_common_utils.h"
 #include "trace_events.h"
 #include "hi_app_event_report.h"
+
+#include <mutex>
 
 #define DECLARE_RESPONSE_CODE(code) \
     DECLARE_NAPI_STATIC_PROPERTY(#code, NapiUtils::CreateUint32(env, static_cast<uint32_t>(ResponseCode::code)))
@@ -47,6 +50,10 @@ static thread_local uint64_t g_moduleId;
 
 static bool g_appIsAtomicService = false;
 
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+static bool g_appIsDeadFlowResetTarget = false;
+#endif
+
 static std::string g_appBundleName;
 
 static std::once_flag g_isAtomicServiceFlag;
@@ -63,6 +70,12 @@ napi_value HttpModuleExports::InitHttpModule(napi_env env, napi_value exports)
         g_appIsAtomicService = CommonUtils::IsAtomicService(g_appBundleName);
         NETSTACK_LOGI("IsAtomicService bundleName is %{public}s, isAtomicService is %{public}d",
                       g_appBundleName.c_str(), g_appIsAtomicService);
+#if HAS_NETMANAGER_BASE
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+        NetManagerStandard::NetConnClient::GetInstance().IsDeadFlowResetTargetBundle(g_appBundleName,
+            g_appIsDeadFlowResetTarget);
+#endif
+#endif
     });
     auto envWrapper = new (std::nothrow)napi_env;
     if (envWrapper == nullptr) {
@@ -111,6 +124,7 @@ void HttpModuleExports::DefineHttpRequestClass(napi_env env, napi_value exports)
         DECLARE_NAPI_WRITABLE_FUNCTION(HttpRequest::FUNCTION_ON, HttpRequest::On),
         DECLARE_NAPI_WRITABLE_FUNCTION(HttpRequest::FUNCTION_ONCE, HttpRequest::Once),
         DECLARE_NAPI_WRITABLE_FUNCTION(HttpRequest::FUNCTION_OFF, HttpRequest::Off),
+        DECLARE_NAPI_WRITABLE_FUNCTION(HttpRequest::FUNCTION_ENABLE_AUTO_COOKIE, HttpRequest::EnableAutoCookie),
     };
     ModuleTemplate::DefineClass(env, exports, properties, INTERFACE_HTTP_REQUEST);
 }
@@ -319,6 +333,9 @@ napi_value HttpModuleExports::HttpRequest::Request(napi_env env, napi_callback_i
             context->SetModuleId(g_moduleId);
             context->SetAtomicService(g_appIsAtomicService);
             context->SetBundleName(g_appBundleName);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+            context->SetDeadFlowResetResult(g_appIsDeadFlowResetTarget);
+#endif
             HttpExec::AsyncRunRequest(context);
             return context->IsExecOK();
         },
@@ -339,6 +356,9 @@ napi_value HttpModuleExports::HttpRequest::RequestInStream(napi_env env, napi_ca
             context->SetModuleId(g_moduleId);
             context->SetAtomicService(g_appIsAtomicService);
             context->SetBundleName(g_appBundleName);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+            context->SetDeadFlowResetResult(g_appIsDeadFlowResetTarget);
+#endif
             context->EnableRequestInStream();
             HttpExec::AsyncRunRequest(context);
             return true;
@@ -360,6 +380,9 @@ napi_value HttpModuleExports::HttpRequest::RequestSync(napi_env env, napi_callba
             context->SetModuleId(g_moduleId);
             context->SetAtomicService(g_appIsAtomicService);
             context->SetBundleName(g_appBundleName);
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+            context->SetDeadFlowResetResult(g_appIsDeadFlowResetTarget);
+#endif
             context->SetSyncWait(true);
             bool execResult = HttpExec::ExecRequest(context);
             if (execResult) {
@@ -394,6 +417,7 @@ napi_value HttpModuleExports::HttpRequest::Destroy(napi_env env, napi_callback_i
         NETSTACK_LOGD("js object has been destroyed");
         return NapiUtils::GetUndefined(env);
     }
+    wrapper->eventManager.ResetShareHandle();
     manager->SetEventDestroy(true);
     manager->DeleteEventReference(env);
     if (g_limitSdkReport == 0) {
@@ -421,6 +445,120 @@ napi_value HttpModuleExports::HttpRequest::Off(napi_env env, napi_callback_info 
     ModuleTemplate::OffManagerWrapper(
         env, info, {ON_HEADERS_RECEIVE, ON_DATA_RECEIVE, ON_DATA_END, ON_DATA_RECEIVE_PROGRESS, ON_DATA_SEND_PROGRESS});
     return ModuleTemplate::OffManagerWrapper(env, info, {ON_HEADER_RECEIVE});
+}
+
+namespace {
+struct CurlShareHandleOwner {
+    CURLSH *handle = nullptr;
+    std::mutex mutex;
+
+    ~CurlShareHandleOwner()
+    {
+        if (handle == nullptr) {
+            return;
+        }
+        auto result = curl_share_cleanup(handle);
+        if (result != CURLSHE_OK) {
+            NETSTACK_LOGE("curl_share_cleanup failed, result=%{public}d", result);
+        }
+    }
+};
+
+void CurlShareLock(CURL *, curl_lock_data, curl_lock_access, void *userData)
+{
+    auto owner = static_cast<CurlShareHandleOwner *>(userData);
+    if (owner == nullptr) {
+        NETSTACK_LOGE("CurlShareLock owner is null");
+        return;
+    }
+    owner->mutex.lock();
+}
+
+void CurlShareUnlock(CURL *, curl_lock_data, void *userData)
+{
+    auto owner = static_cast<CurlShareHandleOwner *>(userData);
+    if (owner == nullptr) {
+        NETSTACK_LOGE("CurlShareUnlock owner is null");
+        return;
+    }
+    owner->mutex.unlock();
+}
+
+std::shared_ptr<CURLSH> CreateShareHandle()
+{
+    auto owner = std::make_shared<CurlShareHandleOwner>();
+    owner->handle = curl_share_init();
+    if (owner->handle == nullptr) {
+        return nullptr;
+    }
+
+    auto setShareOption = [handle = owner->handle](CURLSHoption option, auto value) {
+        auto result = curl_share_setopt(handle, option, value);
+        if (result != CURLSHE_OK) {
+            NETSTACK_LOGE("curl_share_setopt failed, option=%{public}d, result=%{public}d", option, result);
+            return false;
+        }
+        return true;
+    };
+
+    if (!setShareOption(CURLSHOPT_USERDATA, owner.get())) {
+        return nullptr;
+    }
+    if (!setShareOption(CURLSHOPT_LOCKFUNC, CurlShareLock)) {
+        return nullptr;
+    }
+    if (!setShareOption(CURLSHOPT_UNLOCKFUNC, CurlShareUnlock)) {
+        return nullptr;
+    }
+    if (!setShareOption(CURLSHOPT_SHARE, CURL_LOCK_DATA_COOKIE)) {
+        return nullptr;
+    }
+
+    return std::shared_ptr<CURLSH>(owner, owner->handle);
+}
+}
+
+napi_value HttpModuleExports::HttpRequest::EnableAutoCookie(napi_env env, napi_callback_info info)
+{
+    napi_value thisVal = nullptr;
+    size_t paramsCount = 1;
+    napi_value params[1] = {nullptr};
+    NAPI_CALL(env, napi_get_cb_info(env, info, &paramsCount, params, &thisVal, nullptr));
+
+    if (paramsCount < 1 || NapiUtils::GetValueType(env, params[0]) != napi_boolean) {
+        NETSTACK_LOGE("EnableAutoCookie: invalid parameter, expected boolean");
+        return NapiUtils::GetUndefined(env);
+    }
+
+    bool enableAutoCookie = NapiUtils::GetBooleanFromValue(env, params[0]);
+
+    EventManagerWrapper *wrapper = nullptr;
+    auto napiRet = napi_unwrap(env, thisVal, reinterpret_cast<void **>(&wrapper));
+    if (napiRet != napi_ok || wrapper == nullptr) {
+        NETSTACK_LOGE("EnableAutoCookie: failed to get event manager wrapper");
+        return NapiUtils::GetUndefined(env);
+    }
+
+    wrapper->eventManager.enableAutoCookie_ = enableAutoCookie;
+    NETSTACK_LOGI("EnableAutoCookie: set enableAutoCookie to %{public}d", enableAutoCookie);
+
+    if (!enableAutoCookie) {
+        wrapper->eventManager.ResetShareHandle();
+        NETSTACK_LOGI("EnableAutoCookie: cleaned up share handle");
+        return NapiUtils::GetUndefined(env);
+    }
+
+    if (!wrapper->eventManager.GetShareHandle()) {
+        auto shareHandle = CreateShareHandle();
+        wrapper->eventManager.SetShareHandle(shareHandle);
+        if (shareHandle) {
+            NETSTACK_LOGI("EnableAutoCookie: created share handle for cookie sharing");
+        } else {
+            NETSTACK_LOGE("EnableAutoCookie: failed to create share handle");
+        }
+    }
+
+    return NapiUtils::GetUndefined(env);
 }
 
 napi_value HttpModuleExports::HttpResponseCache::Flush(napi_env env, napi_callback_info info)

@@ -23,6 +23,7 @@
 #include "multicast_get_ttl_context.h"
 #include "multicast_membership_context.h"
 #include "multicast_set_loopback_context.h"
+#include "multicast_set_reuse_address_context.h"
 #include "multicast_set_ttl_context.h"
 #include "safe_map.h"
 #include "tcp_extra_context.h"
@@ -126,6 +127,8 @@ bool ExecSetLoopbackMode(MulticastSetLoopbackContext *context);
 
 bool ExecGetLoopbackMode(MulticastGetLoopbackContext *context);
 
+bool ExecSetReuseAddress(MulticastSetReuseAddressContext *context);
+
 bool ExecTcpBind(BindContext *context);
 
 bool ExecConnect(ConnectContext *context);
@@ -186,6 +189,8 @@ napi_value UdpGetMulticastTTLCallback(MulticastGetTTLContext *context);
 napi_value UdpSetLoopbackModeCallback(MulticastSetLoopbackContext *context);
 
 napi_value UdpGetLoopbackModeCallback(MulticastGetLoopbackContext *context);
+
+napi_value UdpSetReuseAddressCallback(MulticastSetReuseAddressContext *context);
 
 napi_value ConnectCallback(ConnectContext *context);
 

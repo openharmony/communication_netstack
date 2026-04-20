@@ -66,7 +66,7 @@ OH_Http_Interceptor g_response_readonly_interceptor = {
 OH_Http_Interceptor g_response_modify_interceptor = {
     .groupId = g_groupId,
     .stage = OH_STAGE_RESPONSE,
-    .type = OH_TYPE_MODIFY,
+    .type = OH_TYPE_MODIFY_NETWORK_KIT,
     .enabled = 0,
     .handler = OH_Http_InterceptorHandler,
 };
