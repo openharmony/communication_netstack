@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <new>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <utility>
 
@@ -35,6 +36,7 @@
 #include "multicast_get_ttl_context.h"
 #include "multicast_membership_context.h"
 #include "multicast_set_loopback_context.h"
+#include "multicast_set_reuse_address_context.h"
 #include "multicast_set_ttl_context.h"
 #include "napi/native_api.h"
 #include "napi/native_common.h"
@@ -584,6 +586,7 @@ void SocketModuleExports::DefineMulticastSocketClass(napi_env env, napi_value ex
         DECLARE_NAPI_FUNCTION(MulticastSocket::FUNCTION_GET_MULTICAST_TTL, MulticastSocket::GetMulticastTTL),
         DECLARE_NAPI_FUNCTION(MulticastSocket::FUNCTION_SET_LOOPBACK_MODE, MulticastSocket::SetLoopbackMode),
         DECLARE_NAPI_FUNCTION(MulticastSocket::FUNCTION_GET_LOOPBACK_MODE, MulticastSocket::GetLoopbackMode),
+        DECLARE_NAPI_FUNCTION(MulticastSocket::FUNCTION_SET_REUSE_ADDRESS, MulticastSocket::SetReuseAddress),
     };
     ModuleTemplate::DefineClass(env, exports, properties, INTERFACE_MULTICAST_SOCKET);
 }
@@ -798,6 +801,12 @@ napi_value SocketModuleExports::MulticastSocket::GetLoopbackMode(napi_env env, n
 {
     return SOCKET_INTERFACE(MulticastGetLoopbackContext, ExecGetLoopbackMode, UdpGetLoopbackModeCallback, nullptr,
                             UDP_GET_LOOPBACK_MODE);
+}
+
+napi_value SocketModuleExports::MulticastSocket::SetReuseAddress(napi_env env, napi_callback_info info)
+{
+    return ModuleTemplate::SyncInterfaceWithSharedManager<MulticastSetReuseAddressContext>(
+    env, info, nullptr, SocketExec::ExecSetReuseAddress, SocketExec::UdpSetReuseAddressCallback);
 }
 
 /* tcp async works */
