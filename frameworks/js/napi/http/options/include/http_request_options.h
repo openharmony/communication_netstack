@@ -295,6 +295,9 @@ public:
     void SetInactivityMs(int inactivityMs);
     [[nodiscard]] int GetInactivityMs() const;
 
+    void SetEnableAutoCookie(bool enableAutoCookie);
+    [[nodiscard]] bool GetEnableAutoCookie() const;
+
 private:
     std::string url_;
 
@@ -378,6 +381,8 @@ private:
     bool reuseConnectionsFlag_ = true;
 
     int inactivityMs_ = 0;
+
+    bool enableAutoCookie_ = false;
 };
 } // namespace OHOS::NetStack::Http
 

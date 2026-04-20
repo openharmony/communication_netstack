@@ -184,6 +184,10 @@ napi_value InterfaceWithOutAsyncWorkWithManagerWrapper(napi_env env, napi_callba
         context->SetInterceptorRefs(wrapper->eventManager.interceptorRefs_);
     }
 #endif
+    if (wrapper) {
+        context->SetEnableAutoCookie(wrapper->eventManager.enableAutoCookie_);
+        context->SetShareHandle(wrapper->eventManager.GetShareHandle());
+    }
     context->ParseParams(params, paramsCount);
     napi_value ret = NapiUtils::GetUndefined(env);
     if (NapiUtils::GetValueType(env, context->GetCallback()) != napi_function && context->IsNeedPromise()) {
@@ -359,6 +363,11 @@ napi_value SyncInterfaceWithManagerWrapper(napi_env env, napi_callback_info info
         context->SetInterceptorRefs(wrapper->eventManager.interceptorRefs_);
     }
 #endif
+
+    if (wrapper) {
+        context->SetEnableAutoCookie(wrapper->eventManager.enableAutoCookie_);
+        context->SetShareHandle(wrapper->eventManager.GetShareHandle());
+    }
 
     context->ParseParams(params, paramsCount);
     if (!context->IsParseOK()) {
