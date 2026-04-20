@@ -84,7 +84,7 @@ OH_Interceptor_Result OH_Http_InterceptorHandler(
 OH_Http_Interceptor g_request_interceptor = {
     .groupId = 0,
     .stage = OH_STAGE_REQUEST,
-    .type = OH_TYPE_MODIFY,
+    .type = OH_TYPE_MODIFY_NETWORK_KIT,
     .enabled = 1,
     .handler = OH_Http_InterceptorHandler,
 };
@@ -92,7 +92,7 @@ OH_Http_Interceptor g_request_interceptor = {
 OH_Http_Interceptor g_response_interceptor = {
     .groupId = 0,
     .stage = OH_STAGE_RESPONSE,
-    .type = OH_TYPE_MODIFY,
+    .type = OH_TYPE_MODIFY_NETWORK_KIT,
     .enabled = 1,
     .handler = OH_Http_InterceptorHandler,
 };

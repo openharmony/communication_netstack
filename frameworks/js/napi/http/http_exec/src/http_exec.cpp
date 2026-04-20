@@ -1814,7 +1814,13 @@ bool HttpExec::SetDnsResolvOption(CURL *curl, RequestContext *context)
     }
 #ifdef HAS_NETMANAGER_BASE
     struct addrinfo *res = nullptr;
-    int ret = getaddrinfo_hook(host.c_str(), nullptr, nullptr, &res);
+    int ret = getaddrinfo_custom(host.c_str(), nullptr, nullptr, &res);
+    if (ret == 0) {
+        NETSTACK_LOGI("SetDnsResolvOption use getaddrinfo_custom");
+        NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_USE_DNS_INTERCEPTOR, 1L, context);
+    } else {
+        ret = getaddrinfo_hook(host.c_str(), nullptr, nullptr, &res);
+    }
     if (ret < 0) {
         return true;
     }
@@ -1925,7 +1931,11 @@ bool HttpExec::SetOption(CURL *curl, RequestContext *context, struct curl_slist 
     NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_MAXREDIRS, context->options.GetMaxRedirects(), context);
 
     /* first #undef CURL_DISABLE_COOKIES in curl config */
-    NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_COOKIEFILE, "", context);
+    auto shareHandle = context->GetShareHandle();
+    if (context->options.GetEnableAutoCookie() && shareHandle) {
+        NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_SHARE, shareHandle.get(), context);
+        NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_COOKIEFILE, "", context);
+    }
     NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_NOSIGNAL, 1L, context);
     NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_TIMEOUT_MS, context->options.GetReadTimeout(), context);
     NETSTACK_CURL_EASY_SET_OPTION(curl, CURLOPT_CONNECTTIMEOUT_MS, context->options.GetConnectTimeout(), context);

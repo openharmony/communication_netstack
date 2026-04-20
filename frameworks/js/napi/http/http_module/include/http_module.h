@@ -41,6 +41,7 @@ public:
         static constexpr const char *FUNCTION_ON = "on";
         static constexpr const char *FUNCTION_ONCE = "once";
         static constexpr const char *FUNCTION_OFF = "off";
+        static constexpr const char *FUNCTION_ENABLE_AUTO_COOKIE = "enableAutoCookie";
 
         static napi_value Request(napi_env env, napi_callback_info info);
         static napi_value RequestInStream(napi_env env, napi_callback_info info);
@@ -50,6 +51,7 @@ public:
         static napi_value On(napi_env env, napi_callback_info info);
         static napi_value Once(napi_env env, napi_callback_info info);
         static napi_value Off(napi_env env, napi_callback_info info);
+        static napi_value EnableAutoCookie(napi_env env, napi_callback_info info);
     };
 
     class HttpInterceptor {

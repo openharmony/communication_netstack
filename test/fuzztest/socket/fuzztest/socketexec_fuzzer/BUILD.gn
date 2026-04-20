@@ -25,7 +25,6 @@ TLS_NAPI = "$NETSTACK_NAPI_ROOT/tls"
 ohos_fuzztest("SocketExecFuzzTest") {
   module_out_path = fuzz_test_path
   fuzz_config_file = "//foundation/communication/netstack/test/fuzztest/socket/fuzztest/socketexec_fuzzer"
-
   include_dirs = [
     "$NETSTACK_NAPI_ROOT/socket/async_context/include",
     "$NETSTACK_NAPI_ROOT/socket/async_work/include",
@@ -76,6 +75,7 @@ ohos_fuzztest("SocketExecFuzzTest") {
     "$NETSTACK_NAPI_ROOT/socket/async_context/src/multicast_get_ttl_context.cpp",
     "$NETSTACK_NAPI_ROOT/socket/async_context/src/multicast_membership_context.cpp",
     "$NETSTACK_NAPI_ROOT/socket/async_context/src/multicast_set_loopback_context.cpp",
+    "$NETSTACK_NAPI_ROOT/socket/async_context/src/multicast_set_reuse_address_context.cpp",
     "$NETSTACK_NAPI_ROOT/socket/async_context/src/multicast_set_ttl_context.cpp",
     "$NETSTACK_NAPI_ROOT/socket/async_context/src/tcp_extra_context.cpp",
     "$NETSTACK_NAPI_ROOT/socket/async_context/src/tcp_send_context.cpp",
@@ -136,12 +136,12 @@ ohos_fuzztest("SocketExecFuzzTest") {
 
   external_deps = [
     "c_utils:utils",
+    "hiappevent:hiappevent_innerapi",
     "hilog:libhilog",
     "napi:ace_napi",
     "openssl:libcrypto_shared",
     "openssl:libssl_shared",
     "samgr:samgr_proxy",
-    "hiappevent:hiappevent_innerapi",
   ]
 
   defines = [

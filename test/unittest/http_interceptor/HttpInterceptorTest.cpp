@@ -111,7 +111,7 @@ OH_Interceptor_Result OH_Http_InterceptorHandler(
 OH_Http_Interceptor g_request_modify_interceptor = {
     .groupId = g_groupId,
     .stage = OH_STAGE_REQUEST,
-    .type = OH_TYPE_MODIFY,
+    .type = OH_TYPE_MODIFY_NETWORK_KIT,
     .enabled = 0,
     .handler = OH_Http_InterceptorHandler,
 };
@@ -119,7 +119,7 @@ OH_Http_Interceptor g_request_modify_interceptor = {
 OH_Http_Interceptor g_request_modify_interceptor2 = {
     .groupId = g_groupId,
     .stage = OH_STAGE_REQUEST,
-    .type = OH_TYPE_MODIFY,
+    .type = OH_TYPE_MODIFY_NETWORK_KIT,
     .enabled = 0,
     .handler = nullptr,
 };
@@ -127,7 +127,7 @@ OH_Http_Interceptor g_request_modify_interceptor2 = {
 OH_Http_Interceptor g_request_modify_interceptor3 = {
     .groupId = g_groupId,
     .stage = OH_STAGE_REQUEST,
-    .type = OH_TYPE_MODIFY,
+    .type = OH_TYPE_MODIFY_NETWORK_KIT,
     .enabled = 0,
     .handler = OH_Http_InterceptorHandler,
 };
@@ -159,7 +159,7 @@ OH_Http_Interceptor g_request_readonly_interceptor3 = {
 OH_Http_Interceptor g_response_modify_interceptor = {
     .groupId = g_groupId,
     .stage = OH_STAGE_RESPONSE,
-    .type = OH_TYPE_MODIFY,
+    .type = OH_TYPE_MODIFY_NETWORK_KIT,
     .enabled = 0,
     .handler = OH_Http_InterceptorHandler,
 };
@@ -167,7 +167,7 @@ OH_Http_Interceptor g_response_modify_interceptor = {
 OH_Http_Interceptor g_response_modify_interceptor2 = {
     .groupId = g_groupId,
     .stage = OH_STAGE_RESPONSE,
-    .type = OH_TYPE_MODIFY,
+    .type = OH_TYPE_MODIFY_NETWORK_KIT,
     .enabled = 0,
     .handler = nullptr,
 };
@@ -175,7 +175,7 @@ OH_Http_Interceptor g_response_modify_interceptor2 = {
 OH_Http_Interceptor g_response_modify_interceptor3 = {
     .groupId = g_groupId,
     .stage = OH_STAGE_RESPONSE,
-    .type = OH_TYPE_MODIFY,
+    .type = OH_TYPE_MODIFY_NETWORK_KIT,
     .enabled = 0,
     .handler = OH_Http_InterceptorHandler,
 };
@@ -308,7 +308,7 @@ HWTEST_F(HttpInterceptorTest, IteratorRequestInterceptorTest001, TestSize.Level1
     EXPECT_EQ(ret, OH_CONTINUE);
     g_IsModified = true;
     g_Interceptor_Result = OH_ABORT;
-    ret = mgr->IteratorRequestInterceptor(req, isModified, true);
+    ret = mgr->IteratorRequestInterceptor(req, isModified, OH_TYPE_MODIFY_NETWORK_KIT, true);
     EXPECT_EQ(isModified, true);
     EXPECT_EQ(ret, OH_ABORT);
     g_IsModified = false;
@@ -338,12 +338,12 @@ HWTEST_F(HttpInterceptorTest, IteratorRequestInterceptorTest002, TestSize.Level1
     EXPECT_EQ(ret, OH_HTTP_RESULT_OK);
     ret = mgr->SetAllInterceptorEnabled(g_groupId, 1);
     EXPECT_EQ(ret, OH_HTTP_RESULT_OK);
-    ret = mgr->IteratorRequestInterceptor(req, isModified, true);
+    ret = mgr->IteratorRequestInterceptor(req, isModified, OH_TYPE_MODIFY_NETWORK_KIT, true);
     EXPECT_EQ(ret, OH_CONTINUE);
     std::this_thread::sleep_for(std::chrono::seconds(1));
     g_IsModified = true;
     g_Interceptor_Result = OH_ABORT;
-    ret = mgr->IteratorRequestInterceptor(req, isModified, true);
+    ret = mgr->IteratorRequestInterceptor(req, isModified, OH_TYPE_MODIFY_NETWORK_KIT, true);
     EXPECT_EQ(isModified, true);
     EXPECT_EQ(ret, OH_ABORT);
     g_IsModified = false;
@@ -381,11 +381,11 @@ HWTEST_F(HttpInterceptorTest, IteratorResponseInterceptorTest001, TestSize.Level
     ret = mgr->IteratorResponseInterceptor(resp, isModified);
     EXPECT_EQ(ret, OH_CONTINUE);
     InitHttpResponseData(resp);
-    ret = mgr->IteratorResponseInterceptor(resp, isModified, true);
+    ret = mgr->IteratorResponseInterceptor(resp, isModified, OH_TYPE_MODIFY_NETWORK_KIT, true);
     EXPECT_EQ(ret, OH_CONTINUE);
     g_IsModified = true;
     g_Interceptor_Result = OH_ABORT;
-    ret = mgr->IteratorResponseInterceptor(resp, isModified, true);
+    ret = mgr->IteratorResponseInterceptor(resp, isModified, OH_TYPE_MODIFY_NETWORK_KIT, true);
     EXPECT_EQ(isModified, true);
     EXPECT_EQ(ret, OH_ABORT);
     g_IsModified = false;
@@ -414,11 +414,11 @@ HWTEST_F(HttpInterceptorTest, IteratorResponseInterceptorTest002, TestSize.Level
     ret = mgr->IteratorResponseInterceptor(resp, isModified);
     EXPECT_EQ(ret, OH_CONTINUE);
     InitHttpResponseData(resp);
-    ret = mgr->IteratorResponseInterceptor(resp, isModified, true);
+    ret = mgr->IteratorResponseInterceptor(resp, isModified, OH_TYPE_MODIFY_NETWORK_KIT, true);
     EXPECT_EQ(ret, OH_CONTINUE);
     g_IsModified = true;
     g_Interceptor_Result = OH_ABORT;
-    ret = mgr->IteratorResponseInterceptor(resp, isModified, true);
+    ret = mgr->IteratorResponseInterceptor(resp, isModified, OH_TYPE_MODIFY_NETWORK_KIT, true);
     EXPECT_EQ(isModified, true);
     EXPECT_EQ(ret, OH_ABORT);
     g_IsModified = false;

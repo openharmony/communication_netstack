@@ -27,6 +27,7 @@
 #include "multicast_get_ttl_context.h"
 #include "multicast_membership_context.h"
 #include "multicast_set_loopback_context.h"
+#include "multicast_set_reuse_address_context.h"
 #include "multicast_set_ttl_context.h"
 #include "socket_exec.h"
 #include "socket_exec_common.h"
@@ -89,6 +90,40 @@ static void ResetConnectMonitorState(ConnectMonitor &monitor)
     monitor.deadlineIters_.clear();
 }
 
+static void InitUdpBindContext(BindContext &context, uint16_t port)
+{
+    context.address_.SetAddress("127.0.0.1");
+    context.address_.SetPort(port);
+    context.address_.SetFamilyBySaFamily(AF_INET);
+}
+
+static int CreateManagedUdpSocket(const std::shared_ptr<EventManager> &eventManager)
+{
+    int sockFd = ExecCommonUtils::MakeUdpSocket(AF_INET);
+    EXPECT_GE(sockFd, 0);
+    if (sockFd >= 0) {
+        eventManager->SetData(reinterpret_cast<void *>(static_cast<intptr_t>(sockFd)));
+    }
+    return sockFd;
+}
+
+static void CloseManagedSocket(const std::shared_ptr<EventManager> &eventManager)
+{
+    int sockFd = eventManager->GetData() ? static_cast<int>(reinterpret_cast<intptr_t>(eventManager->GetData())) : -1;
+    if (sockFd >= 0) {
+        close(sockFd);
+    }
+    eventManager->SetData(nullptr);
+}
+
+static int GetReuseAddressOption(int sockFd)
+{
+    int reuse = 0;
+    socklen_t reuseLen = sizeof(reuse);
+    EXPECT_EQ(getsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, &reuse, &reuseLen), 0);
+    return reuse;
+}
+
 HWTEST_F(SocketTest, MulticastTest001, TestSize.Level1)
 {
     napi_env env = nullptr;
@@ -141,6 +176,73 @@ HWTEST_F(SocketTest, MulticastTest006, TestSize.Level1)
     MulticastGetLoopbackContext context(env, eventManager);
     bool ret = SocketExec::ExecGetLoopbackMode(&context);
     EXPECT_EQ(ret, false);
+}
+
+HWTEST_F(SocketTest, MulticastTest007, TestSize.Level1)
+{
+    napi_env env = nullptr;
+    auto eventManager = std::make_shared<EventManager>();
+    MulticastSetReuseAddressContext reuseContext(env, eventManager);
+    reuseContext.SetReuseAddress(true);
+
+    EXPECT_TRUE(SocketExec::ExecSetReuseAddress(&reuseContext));
+    EXPECT_TRUE(eventManager->GetReuseAddr());
+
+    BindContext bindContext(env, eventManager);
+    InitUdpBindContext(bindContext, 0);
+    int sockFd = CreateManagedUdpSocket(eventManager);
+    ASSERT_GE(sockFd, 0);
+
+    EXPECT_TRUE(SocketExec::ExecUdpBind(&bindContext));
+    EXPECT_EQ(GetReuseAddressOption(sockFd), 1);
+
+    CloseManagedSocket(eventManager);
+}
+
+HWTEST_F(SocketTest, MulticastTest008, TestSize.Level1)
+{
+    napi_env env = nullptr;
+    auto eventManager = std::make_shared<EventManager>();
+    BindContext bindContext(env, eventManager);
+    InitUdpBindContext(bindContext, 0);
+    int sockFd = CreateManagedUdpSocket(eventManager);
+    ASSERT_GE(sockFd, 0);
+
+    EXPECT_TRUE(SocketExec::ExecUdpBind(&bindContext));
+
+    MulticastSetReuseAddressContext reuseContext(env, eventManager);
+    reuseContext.SetReuseAddress(true);
+    EXPECT_TRUE(SocketExec::ExecSetReuseAddress(&reuseContext));
+    EXPECT_TRUE(eventManager->GetReuseAddr());
+    EXPECT_EQ(GetReuseAddressOption(sockFd), 1);
+
+    CloseManagedSocket(eventManager);
+}
+
+HWTEST_F(SocketTest, MulticastTest009, TestSize.Level1)
+{
+    napi_env env = nullptr;
+    auto eventManager = std::make_shared<EventManager>();
+    MulticastSetReuseAddressContext context(env, eventManager);
+
+    context.ParseParams(nullptr, 0);
+
+    EXPECT_FALSE(context.IsParseOK());
+    EXPECT_FALSE(context.GetReuseAddress());
+    EXPECT_FALSE(context.IsNeedPromise());
+    EXPECT_TRUE(context.IsNeedThrowException());
+    EXPECT_EQ(context.GetErrorCode(), PARSE_ERROR_CODE);
+    EXPECT_EQ(context.GetErrorMessage(), PARSE_ERROR_MSG);
+}
+
+HWTEST_F(SocketTest, MulticastTest010, TestSize.Level1)
+{
+    napi_env env = nullptr;
+    std::shared_ptr<EventManager> eventManager = nullptr;
+    MulticastSetReuseAddressContext context(env, eventManager);
+
+    EXPECT_EQ(context.GetReleaseVersion(), 26);
+    EXPECT_EQ(context.GetSharedManager(), nullptr);
 }
 
 HWTEST_F(SocketTest, LocalSocketTest001, TestSize.Level1)
