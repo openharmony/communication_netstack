@@ -1342,9 +1342,10 @@ bool TLSSocketServer::RecvRemoteInfo(int socketFd, int index)
                 NETSTACK_LOGE("revc message is size is %{public}d", len);
                 if (len > 0) {
                     Socket::SocketRemoteInfo remoteInfo;
-                    remoteInfo.SetSize(strlen(buffer));
+                    remoteInfo.SetSize(len);
                     it->second->MakeRemoteInfo(remoteInfo);
-                    it->second->CallOnMessageCallback(socketFd, buffer, remoteInfo);
+                    std::string bufContent(buffer, len);
+                    it->second->CallOnMessageCallback(socketFd, bufContent, remoteInfo);
                     return false;
                 } else if (len == 0) {
                     NETSTACK_LOGE("tls connection is closed by peer, clientId: %{public}d, Fd: %{public}d",

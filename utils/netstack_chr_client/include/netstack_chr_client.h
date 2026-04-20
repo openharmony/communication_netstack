@@ -27,9 +27,13 @@ namespace OHOS::NetStack::ChrClient {
 class NetStackChrClient {
 public:
     static NetStackChrClient &GetInstance();
+#ifdef HTTP_DEADFLOWRESET_FEATURE
+    void GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t curlCode,
+        const HttpDeadFlowInfo *deadFlowInfo = nullptr);
+#else
     void GetDfxInfoFromCurlHandleAndReport(CURL *handle, int32_t curlCode);
+#endif
     void GetDfxUrlInfoFromCurlHandleAndReport(CURL *handle, int32_t curlCode);
-
 private:
     NetStackChrClient() = default;
     ~NetStackChrClient() = default;
@@ -43,8 +47,8 @@ private:
     static DataType GetNumericAttributeFromCurl(CURL *handle, CURLINFO info);
     static std::string GetStringAttributeFromCurl(CURL *handle, CURLINFO info);
     static long GetRequestStartTime(curl_off_t totalTime);
-    static int ShouldReportHttpAbnormalEvent(const DataTransHttpInfo &httpInfo);
     bool ShouldReportUrlAbnormalEvent(const DataTransUrlInfo &urlInfo);
+    int ShouldReportHttpAbnormalEvent(const DataTransChrStats &dataTransChrStats);
     NetStackChrReport netstackChrReport_;
 };
 

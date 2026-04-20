@@ -65,12 +65,12 @@ ohos_unittest("http_handover_handler_test") {
   external_deps += [
     "ability_runtime:wantagent_innerkits",
     "curl:curl_shared",
+    "hiappevent:hiappevent_innerapi",
     "hiprofiler:libnetwork_profiler",
     "init:libbegetutil",
     "ipc:ipc_single",
     "napi:ace_napi",
     "time_service:time_client",
-    "hiappevent:hiappevent_innerapi",
   ]
 
   if (is_mingw || is_mac) {
@@ -85,12 +85,12 @@ ohos_unittest("http_handover_handler_test") {
         defined(global_parts_info.communication_netmanager_base) &&
         global_parts_info.communication_netmanager_base) {
       external_deps += [
+        "hitrace:hitrace_meter",
         "netmanager_base:net_conn_manager_if",
         "netmanager_base:net_security_config_if",
         "netmanager_base:netsys_client",
-        "hitrace:hitrace_meter",
-        "samgr:samgr_proxy",
         "safwk:system_ability_fwk",
+        "samgr:samgr_proxy",
       ]
       defines += [
         "HAS_NETMANAGER_BASE=1",
@@ -110,8 +110,8 @@ ohos_unittest("http_handover_handler_test") {
     "$NETSTACK_DIR/frameworks/js/napi/http/http_exec/src/http_tls_config.cpp",
     "$NETSTACK_DIR/frameworks/js/napi/http/http_interceptor/src/http_interceptor.cpp",
     "$NETSTACK_DIR/frameworks/js/napi/http/options/src/http_request_options.cpp",
-    "$NETSTACK_DIR/utils/profiler_utils/src/netstack_network_profiler.cpp",
     "$NETSTACK_DIR/utils/http_over_curl/src/http_handover_handler.cpp",
+    "$NETSTACK_DIR/utils/profiler_utils/src/netstack_network_profiler.cpp",
     "http_handover_handler_test.cpp",
   ]
 

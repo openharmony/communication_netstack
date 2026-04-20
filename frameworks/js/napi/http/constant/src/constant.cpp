@@ -172,4 +172,6 @@ const char *const HttpConstant::PARAM_KEY_IS_REUSED_CONNECTION = "isReusedConnec
 const char *const HttpConstant::PARAM_KEY_IS_PROXY_CONNECTION = "isProxyConnection";
 const char *const HttpConstant::PARAM_KEY_IS_CACHE_HIT = "isCacheHit";
 const char *const HttpConstant::PARAM_KEY_REDIRECT_COUNT = "redirectCount";
+
+const char *const HttpConstant::PARAM_KEY_ENABLE_AUTO_COOKIE = "enableAutoCookie";
 } // namespace OHOS::NetStack::Http

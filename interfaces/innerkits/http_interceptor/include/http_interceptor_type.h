@@ -190,8 +190,8 @@ typedef enum OH_Interceptor_Stage {
 typedef enum OH_Interceptor_Type {
     /** interceptor will not modify the packet */
     OH_TYPE_READ_ONLY,
-    /** interceptor will modify the packet */
-    OH_TYPE_MODIFY
+    /** interceptor will modify the packet from Network Kit*/
+    OH_TYPE_MODIFY_NETWORK_KIT
 } OH_Interceptor_Type;
 
 /**
