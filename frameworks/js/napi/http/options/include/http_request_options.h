@@ -301,7 +301,6 @@ public:
     void SetInactivityMs(int inactivityMs);
     [[nodiscard]] int GetInactivityMs() const;
 
-<<<<<<< socks5
     void SetSocks5Proxy(const std::string &host, int32_t port,
         const NapiUtils::SecureData &username, const NapiUtils::SecureData &password,
         Socks5DnsStrategy dnsStrategy, const std::string &exclusionList);
@@ -309,10 +308,10 @@ public:
     void GetSocks5Proxy(std::string &host, int32_t &port,
         NapiUtils::SecureData &username, NapiUtils::SecureData &password,
         Socks5DnsStrategy &dnsStrategy, std::string &exclusionList) const;
-=======
+
     void SetEnableAutoCookie(bool enableAutoCookie);
     [[nodiscard]] bool GetEnableAutoCookie() const;
->>>>>>> master
+
 
 private:
     std::string url_;
