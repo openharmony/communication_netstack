@@ -52,6 +52,7 @@ public:
         static constexpr char FUNCTION_GET_MULTICAST_TTL[] = "getMulticastTTL";
         static constexpr char FUNCTION_SET_LOOPBACK_MODE[] = "setLoopbackMode";
         static constexpr char FUNCTION_GET_LOOPBACK_MODE[] = "getLoopbackMode";
+        static constexpr char FUNCTION_SET_REUSE_ADDRESS[] = "setReuseAddress";
 
         static napi_value AddMembership(napi_env env, napi_callback_info info);
         static napi_value DropMembership(napi_env env, napi_callback_info info);
@@ -60,6 +61,7 @@ public:
         static napi_value GetMulticastTTL(napi_env env, napi_callback_info info);
         static napi_value SetLoopbackMode(napi_env env, napi_callback_info info);
         static napi_value GetLoopbackMode(napi_env env, napi_callback_info info);
+        static napi_value SetReuseAddress(napi_env env, napi_callback_info info);
     };
 
     class LocalSocket {

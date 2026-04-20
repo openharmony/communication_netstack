@@ -280,7 +280,8 @@ public:
     static const char *const PARAM_KEY_IS_PROXY_CONNECTION;
     static const char *const PARAM_KEY_IS_CACHE_HIT;
     static const char *const PARAM_KEY_REDIRECT_COUNT;
+
+    static const char *const PARAM_KEY_ENABLE_AUTO_COOKIE;
 };
 } // namespace OHOS::NetStack::Http
-
 #endif /* COMMUNICATIONNETSTACK_CONSTANT_H */

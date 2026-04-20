@@ -558,4 +558,14 @@ void HttpRequestOptions::GetSocks5Proxy(std::string &host, int32_t &port,
     dnsStrategy = socks5ProxyDnsStrategy_;
     exclusionList = socks5ProxyExclusionList_;
 }
+
+void HttpRequestOptions::SetEnableAutoCookie(bool enableAutoCookie)
+{
+    enableAutoCookie_ = enableAutoCookie;
+}
+
+bool HttpRequestOptions::GetEnableAutoCookie() const
+{
+    return enableAutoCookie_;
+}
 } // namespace OHOS::NetStack::Http

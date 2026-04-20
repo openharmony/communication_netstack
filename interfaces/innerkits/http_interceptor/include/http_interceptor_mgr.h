@@ -42,11 +42,11 @@ public:
 
     int32_t SetAllInterceptorEnabled(int32_t groupId, int32_t enabled);
 
-    OH_Interceptor_Result IteratorRequestInterceptor(
-        std::shared_ptr<OH_Http_Interceptor_Request> &req, bool &isModified, bool needDeepCopy = false);
+    OH_Interceptor_Result IteratorRequestInterceptor(std::shared_ptr<OH_Http_Interceptor_Request> &req,
+        bool &isModified, OH_Interceptor_Type type = OH_TYPE_MODIFY_NETWORK_KIT, bool needDeepCopy = false);
 
-    OH_Interceptor_Result IteratorResponseInterceptor(
-        std::shared_ptr<OH_Http_Interceptor_Response> &resp, bool &isModified, bool needDeepCopy = false);
+    OH_Interceptor_Result IteratorResponseInterceptor(std::shared_ptr<OH_Http_Interceptor_Response> &resp,
+        bool &isModified, OH_Interceptor_Type type = OH_TYPE_MODIFY_NETWORK_KIT, bool needDeepCopy = false);
 
     void ReportHttpResponse(CURL *curl,
         const std::shared_ptr<std::unordered_map<std::string, std::vector<std::string>>> &headers,
