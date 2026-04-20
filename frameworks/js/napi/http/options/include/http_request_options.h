@@ -176,6 +176,8 @@ public:
 
     void ReplaceBody(const void *data, size_t length);
 
+    void SetQueryParams(const std::string &queryParams);
+
     void SetHeader(const std::string &key, const std::string &val);
 
     void SetReadTimeout(uint32_t readTimeout);
@@ -222,6 +224,8 @@ public:
     [[nodiscard]] const std::string &GetMethod() const;
 
     [[nodiscard]] const std::string &GetBody() const;
+
+    [[nodiscard]] const std::string &GetQueryParams() const;
 
     [[nodiscard]] const std::map<std::string, std::string> &GetHeader() const;
 
@@ -302,6 +306,8 @@ private:
     std::string url_;
 
     std::string body_;
+
+    std::string queryParams_;
 
     std::string method_;
 
