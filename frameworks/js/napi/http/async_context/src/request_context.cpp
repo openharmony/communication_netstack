@@ -496,6 +496,107 @@ bool RequestContext::ParseExtraData(napi_value optionsValue)
     return false;
 }
 
+bool RequestContext::ParseBody(napi_value optionsValue)
+{
+    if (!NapiUtils::HasNamedProperty(GetEnv(), optionsValue, HttpConstant::PARAM_KEY_BODY)) {
+        NETSTACK_LOGD("no body");
+        return false;
+    }
+
+    napi_value bodyValue = NapiUtils::GetNamedProperty(GetEnv(), optionsValue, HttpConstant::PARAM_KEY_BODY);
+    if (NapiUtils::GetValueType(GetEnv(), bodyValue) == napi_undefined ||
+        NapiUtils::GetValueType(GetEnv(), bodyValue) == napi_null) {
+        NETSTACK_LOGD("body is undefined or null");
+        return false;
+    }
+
+    return GetRequestBody(bodyValue);
+}
+
+bool RequestContext::ParseQueryParams(napi_value optionsValue)
+{
+    if (!NapiUtils::HasNamedProperty(GetEnv(), optionsValue, HttpConstant::PARAM_KEY_QUERY_PARAMS)) {
+        NETSTACK_LOGD("no queryParams");
+        return false;
+    }
+
+    napi_value queryParamsValue =
+        NapiUtils::GetNamedProperty(GetEnv(), optionsValue, HttpConstant::PARAM_KEY_QUERY_PARAMS);
+    if (NapiUtils::GetValueType(GetEnv(), queryParamsValue) == napi_undefined ||
+        NapiUtils::GetValueType(GetEnv(), queryParamsValue) == napi_null) {
+        NETSTACK_LOGD("queryParams is undefined or null");
+        return false;
+    }
+
+    napi_valuetype type = NapiUtils::GetValueType(GetEnv(), queryParamsValue);
+    if (type == napi_string) {
+        std::string queryParams = NapiUtils::GetStringFromValueUtf8(GetEnv(), queryParamsValue);
+        options.SetQueryParams(queryParams);
+        return true;
+    }
+
+    if (type == napi_object) {
+        std::string queryParams;
+        auto names = NapiUtils::GetPropertyNames(GetEnv(), queryParamsValue);
+        std::for_each(names.begin(), names.end(),
+            [this, queryParamsValue, &queryParams](std::string name) {
+                napi_value value = NapiUtils::GetNamedProperty(GetEnv(), queryParamsValue, name);
+                bool encodeName = HttpExec::EncodeUrlParam(name);
+                if (NapiUtils::IsArray(GetEnv(), value)) {
+                    ProcessQueryParamArray(name, encodeName, value, queryParams);
+                } else {
+                    ProcessQueryParamValue(name, encodeName, value, queryParams);
+                }
+            });
+        if (!queryParams.empty()) {
+            queryParams.pop_back();
+        }
+        options.SetQueryParams(queryParams);
+        return true;
+    }
+    return false;
+}
+
+void RequestContext::ProcessQueryParamArray(const std::string &name, bool encodeName, napi_value value,
+                                            std::string &queryParams)
+{
+    uint32_t arrayLength = NapiUtils::GetArrayLength(GetEnv(), value);
+    for (uint32_t i = 0; i < arrayLength; ++i) {
+        napi_value element = NapiUtils::GetArrayElement(GetEnv(), value, i);
+        napi_valuetype elemType = NapiUtils::GetValueType(GetEnv(), element);
+        if (elemType == napi_null || elemType == napi_undefined) {
+            queryParams += name + HttpConstant::HTTP_URL_PARAM_SEPARATOR;
+        } else {
+            std::string strValue = NapiUtils::NapiValueToString(GetEnv(), element);
+            bool encodeValue = HttpExec::EncodeUrlParam(strValue);
+            if (encodeName || encodeValue) {
+                options.SetHeader(CommonUtils::ToLower(HttpConstant::HTTP_CONTENT_TYPE),
+                                  HttpConstant::HTTP_CONTENT_TYPE_URL_ENCODE);
+            }
+            queryParams += name + HttpConstant::HTTP_URL_NAME_VALUE_SEPARATOR + strValue +
+                           HttpConstant::HTTP_URL_PARAM_SEPARATOR;
+        }
+    }
+}
+
+void RequestContext::ProcessQueryParamValue(const std::string &name, bool encodeName, napi_value value,
+                                            std::string &queryParams)
+{
+    napi_valuetype valueType = NapiUtils::GetValueType(GetEnv(), value);
+    if (valueType == napi_null || valueType == napi_undefined) {
+        queryParams += name + HttpConstant::HTTP_URL_PARAM_SEPARATOR;
+        return;
+    }
+    std::string strValue = NapiUtils::NapiValueToString(GetEnv(), value);
+    bool encodeValue = HttpExec::EncodeUrlParam(strValue);
+    if (encodeName || encodeValue) {
+        options.SetHeader(CommonUtils::ToLower(HttpConstant::HTTP_CONTENT_TYPE),
+                          HttpConstant::HTTP_CONTENT_TYPE_URL_ENCODE);
+    }
+    queryParams += name + HttpConstant::HTTP_URL_NAME_VALUE_SEPARATOR + strValue +
+                   HttpConstant::HTTP_URL_PARAM_SEPARATOR;
+}
+
 void RequestContext::ParseUsingHttpProxy(napi_value optionsValue)
 {
     if (!NapiUtils::HasNamedProperty(GetEnv(), optionsValue, HttpConstant::PARAM_KEY_USING_HTTP_PROXY)) {
@@ -614,6 +715,36 @@ void RequestContext::ParseResumeFromToNumber(napi_value optionsValue)
     options.SetRangeNumber(from, to);
 }
 
+void RequestContext::BuildUrlWithQueryParams()
+{
+    std::string url = options.GetUrl();
+    std::string param;
+    auto index = url.find(HttpConstant::HTTP_URL_PARAM_START);
+    if (index != std::string::npos) {
+        param = url.substr(index + 1);
+        url.resize(index);
+    }
+    options.SetUrl(HttpExec::MakeUrl(url, param, options.GetQueryParams()));
+}
+
+bool RequestContext::ParseBodyQueryParamsOrExtraData(napi_value optionsValue)
+{
+    bool hasBody = NapiUtils::HasNamedProperty(GetEnv(), optionsValue, HttpConstant::PARAM_KEY_BODY);
+    bool hasQueryParams = NapiUtils::HasNamedProperty(GetEnv(), optionsValue, HttpConstant::PARAM_KEY_QUERY_PARAMS);
+    bodyOrQueryConfigured_ = hasBody || hasQueryParams;
+    if (hasBody || hasQueryParams) {
+        if (hasBody) {
+            ParseBody(optionsValue);
+        }
+        if (hasQueryParams) {
+            ParseQueryParams(optionsValue);
+        }
+        BuildUrlWithQueryParams();
+        return true;
+    }
+    return ParseExtraData(optionsValue);
+}
+
 void RequestContext::UrlAndOptions(napi_value urlValue, napi_value optionsValue)
 {
     options.SetUrl(NapiUtils::GetStringFromValueUtf8(GetEnv(), urlValue));
@@ -643,8 +774,7 @@ void RequestContext::UrlAndOptions(napi_value urlValue, napi_value optionsValue)
     ParseClientCert(optionsValue);
     ParseMaxRedirects(optionsValue);
 
-    /* parse extra data here to recover header */
-    if (!ParseExtraData(optionsValue)) {
+    if (!ParseBodyQueryParamsOrExtraData(optionsValue)) {
         return;
     }
 

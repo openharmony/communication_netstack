@@ -73,6 +73,11 @@ void HttpRequestOptions::ReplaceBody(const void *data, size_t length)
     body_.assign(static_cast<const char *>(data), length);
 }
 
+void HttpRequestOptions::SetQueryParams(const std::string &queryParams)
+{
+    queryParams_ = queryParams;
+}
+
 void HttpRequestOptions::SetHeader(const std::string &key, const std::string &val)
 {
     header_[key] = val;
@@ -112,6 +117,11 @@ const std::string &HttpRequestOptions::GetMethod() const
 const std::string &HttpRequestOptions::GetBody() const
 {
     return body_;
+}
+
+const std::string &HttpRequestOptions::GetQueryParams() const
+{
+    return queryParams_;
 }
 
 const std::map<std::string, std::string> &HttpRequestOptions::GetHeader() const
