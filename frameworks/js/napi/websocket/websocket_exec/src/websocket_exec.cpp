@@ -878,7 +878,9 @@ static napi_value CreateOpenExPara(napi_env env, void *callbackPara)
     }
     NapiUtils::SetUint32Property(env, obj, EVENT_KEY_STATUS, para->status);
     NapiUtils::SetStringPropertyUtf8(env, obj, EVENT_KEY_MESSAGE, para->message);
-    NapiUtils::SetStringPropertyUtf8(env, obj, EVENT_KEY_PROTOCOL, para->protocol);
+    if (para->protocol != "") {
+        NapiUtils::SetStringPropertyUtf8(env, obj, EVENT_KEY_PROTOCOL, para->protocol);
+    }
     return obj;
 }
 
