@@ -72,6 +72,14 @@ const char *const HttpConstant::HTTP_PROXY_KEY_EXCLUSION_LIST = "exclusionList";
 const char *const HttpConstant::HTTP_PROXY_KEY_USERNAME = "username";
 const char *const HttpConstant::HTTP_PROXY_KEY_PASSWORD = "password";
 
+const char *const HttpConstant::PARAM_KEY_USING_SOCKS5_PROXY = "usingSocks5Proxy";
+const char *const HttpConstant::SOCKS5_PROXY_KEY_HOST = "host";
+const char *const HttpConstant::SOCKS5_PROXY_KEY_PORT = "port";
+const char *const HttpConstant::SOCKS5_PROXY_KEY_USERNAME = "username";
+const char *const HttpConstant::SOCKS5_PROXY_KEY_PASSWORD = "password";
+const char *const HttpConstant::SOCKS5_PROXY_KEY_DNS_STRATEGY = "dnsStrategy";
+const char *const HttpConstant::SOCKS5_PROXY_KEY_EXCLUSION_LIST = "exclusionList";
+
 const char *const HttpConstant::HTTP_CLIENT_CERT = "certPath";
 const char *const HttpConstant::HTTP_CLIENT_KEY = "keyPath";
 const char *const HttpConstant::HTTP_CLIENT_CERT_TYPE = "certType";

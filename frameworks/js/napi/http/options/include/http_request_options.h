@@ -94,6 +94,12 @@ enum class PathPreference {
     secondaryCellular,
 };
 
+enum class Socks5DnsStrategy {
+    SYSTEM_MODE,
+    PROXY_MODE,
+    UNSPECIFIED,
+};
+
 class HttpRequestOptions final {
 public:
     HttpRequestOptions();
@@ -299,6 +305,14 @@ public:
     void SetInactivityMs(int inactivityMs);
     [[nodiscard]] int GetInactivityMs() const;
 
+    void SetSocks5Proxy(const std::string &host, int32_t port,
+        const NapiUtils::SecureData &username, const NapiUtils::SecureData &password,
+        Socks5DnsStrategy dnsStrategy, const std::string &exclusionList);
+    [[nodiscard]] bool HasSocks5Proxy() const;
+    void GetSocks5Proxy(std::string &host, int32_t &port,
+        NapiUtils::SecureData &username, NapiUtils::SecureData &password,
+        Socks5DnsStrategy &dnsStrategy, std::string &exclusionList) const;
+
     void SetEnableAutoCookie(bool enableAutoCookie);
     [[nodiscard]] bool GetEnableAutoCookie() const;
 
@@ -387,6 +401,13 @@ private:
     bool reuseConnectionsFlag_ = true;
 
     int inactivityMs_ = 0;
+
+    std::string socks5ProxyHost_;
+    int32_t socks5ProxyPort_ = 0;
+    NapiUtils::SecureData socks5ProxyUsername_;
+    NapiUtils::SecureData socks5ProxyPassword_;
+    Socks5DnsStrategy socks5ProxyDnsStrategy_ = Socks5DnsStrategy::UNSPECIFIED;
+    std::string socks5ProxyExclusionList_;
 
     bool enableAutoCookie_ = false;
 };
