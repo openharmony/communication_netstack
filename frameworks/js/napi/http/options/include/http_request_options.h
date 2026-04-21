@@ -312,7 +312,6 @@ public:
     void SetEnableAutoCookie(bool enableAutoCookie);
     [[nodiscard]] bool GetEnableAutoCookie() const;
 
-
 private:
     std::string url_;
 
