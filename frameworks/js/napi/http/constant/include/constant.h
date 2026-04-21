@@ -177,6 +177,14 @@ public:
     static const char *const HTTP_PROXY_KEY_USERNAME;
     static const char *const HTTP_PROXY_KEY_PASSWORD;
 
+    static const char *const PARAM_KEY_USING_SOCKS5_PROXY;
+    static const char *const SOCKS5_PROXY_KEY_HOST;
+    static const char *const SOCKS5_PROXY_KEY_PORT;
+    static const char *const SOCKS5_PROXY_KEY_USERNAME;
+    static const char *const SOCKS5_PROXY_KEY_PASSWORD;
+    static const char *const SOCKS5_PROXY_KEY_DNS_STRATEGY;
+    static const char *const SOCKS5_PROXY_KEY_EXCLUSION_LIST;
+
     static const char *const HTTP_CLIENT_CERT;
     static const char *const HTTP_CLIENT_CERT_TYPE;
     static const char *const HTTP_CLIENT_KEY;
