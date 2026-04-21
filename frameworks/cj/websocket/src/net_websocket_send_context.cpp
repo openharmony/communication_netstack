@@ -36,19 +36,19 @@ void WebSocketSendContext::ParseParams(CArrUI8 params, bool stringType)
 {
     // set protocol
     protocol = stringType ? LWS_WRITE_TEXT : LWS_WRITE_BINARY;
-    size_t len = static_cast<size_t>(params.size);
-    if (len == 0) {
+    if (params.size <= 0) {
         NETSTACK_LOGE("no memory");
         return;
-    };
+    }
+    size_t len = static_cast<size_t>(params.size);
     // set data
     // must have PRE and POST
-    if (params.size > MAX_LIMIT - LWS_SEND_BUFFER_PRE_PADDING - LWS_SEND_BUFFER_POST_PADDING) {
+    if (len > MAX_LIMIT - LWS_SEND_BUFFER_PRE_PADDING - LWS_SEND_BUFFER_POST_PADDING) {
         NETSTACK_LOGE("params.size is exceeded the limit");
         return;
     }
 
-    size_t dataLen = static_cast<size_t>(LWS_SEND_BUFFER_PRE_PADDING + params.size + LWS_SEND_BUFFER_POST_PADDING);
+    size_t dataLen = static_cast<size_t>(LWS_SEND_BUFFER_PRE_PADDING + len + LWS_SEND_BUFFER_POST_PADDING);
     if (dataLen == 0 || dataLen > MAX_LIMIT) {
         NETSTACK_LOGE("WebSocketSendContext data is exceeded the limit");
         return;
