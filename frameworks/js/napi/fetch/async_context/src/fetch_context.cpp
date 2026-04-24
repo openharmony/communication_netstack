@@ -20,7 +20,6 @@
 #include "netstack_common_utils.h"
 #include "netstack_log.h"
 #include "napi_utils.h"
-#include <regex>
 
 namespace OHOS::NetStack::Fetch {
 FetchContext::FetchContext(napi_env env, const std::shared_ptr<EventManager> &manager)
@@ -38,10 +37,7 @@ void FetchContext::ParseParams(napi_value *params, size_t paramsCount)
         return;
     }
 
-    if (!ParseUrl(GetEnv(), params[0], FetchConstant::PARAM_KEY_URL)) {
-        NETSTACK_LOGE("Input url error");
-        return;
-    }
+    request.SetUrl(NapiUtils::GetStringPropertyUtf8(GetEnv(), params[0], FetchConstant::PARAM_KEY_URL));
     request.SetMethod(NapiUtils::GetStringPropertyUtf8(GetEnv(), params[0], FetchConstant::PARAM_KEY_METHOD));
     if (request.GetMethod().empty()) {
         request.SetMethod(FetchConstant::HTTP_METHOD_GET);
@@ -256,15 +252,5 @@ napi_value FetchContext::GetCompleteCallback() const
 std::string FetchContext::GetResponseType() const
 {
     return responseType_;
-}
-
-bool FetchContext::ParseUrl(napi_env env, napi_value object, const std::string &propertyName)
-{
-    std::string url = NapiUtils::GetStringPropertyUtf8(env, object, propertyName);
-    if (!regex_match(url, std::regex("^http(s)?:\\/\\/.+"))) {
-        return false;
-    }
-    request.SetUrl(url);
-    return true;
 }
 } // namespace OHOS::NetStack::Fetch
