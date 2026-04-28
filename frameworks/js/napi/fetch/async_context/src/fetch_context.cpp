@@ -20,7 +20,6 @@
 #include "netstack_common_utils.h"
 #include "netstack_log.h"
 #include "napi_utils.h"
-#include <regex>
 
 namespace OHOS::NetStack::Fetch {
 FetchContext::FetchContext(napi_env env, const std::shared_ptr<EventManager> &manager)
