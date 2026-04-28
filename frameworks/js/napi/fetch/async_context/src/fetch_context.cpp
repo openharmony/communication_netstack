@@ -37,7 +37,10 @@ void FetchContext::ParseParams(napi_value *params, size_t paramsCount)
         return;
     }
 
-    request.SetUrl(NapiUtils::GetStringPropertyUtf8(GetEnv(), params[0], FetchConstant::PARAM_KEY_URL));
+    if (!ParseUrl(GetEnv(), params[0], FetchConstant::PARAM_KEY_URL)) {
+        NETSTACK_LOGE("Input url error");
+        return;
+    }
     request.SetMethod(NapiUtils::GetStringPropertyUtf8(GetEnv(), params[0], FetchConstant::PARAM_KEY_METHOD));
     if (request.GetMethod().empty()) {
         request.SetMethod(FetchConstant::HTTP_METHOD_GET);
@@ -252,5 +255,15 @@ napi_value FetchContext::GetCompleteCallback() const
 std::string FetchContext::GetResponseType() const
 {
     return responseType_;
+}
+
+bool FetchContext::ParseUrl(napi_env env, napi_value object, const std::string &propertyName)
+{
+    std::string url = NapiUtils::GetStringPropertyUtf8(env, object, propertyName);
+    if (url.rfind("https://", 0) != 0 && url.rfind("http://", 0) != 0) {
+        url = "http://" + url;
+    }
+    request.SetUrl(url);
+    return true;
 }
 } // namespace OHOS::NetStack::Fetch
