@@ -1,0 +1,6 @@
+LIBSOCKET_NATIVE {
+  global:
+    *;
+  local:
+    *;
+};

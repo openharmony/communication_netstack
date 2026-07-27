@@ -112,6 +112,18 @@ export default namespace webSocket {
     message: string;
   }
 
+  export interface WebSocketOpenInfo {
+    status: int;
+    message: string;
+    protocol?: string;
+  }
+
+  export class WebSocketOpenInfoInner implements WebSocketOpenInfo {
+    status: int;
+    message: string;
+    protocol?: string;
+  }
+
   export type ResponseHeaders = Record<string, string | string[] | undefined>;
 
   export interface WebSocket {
@@ -133,6 +145,8 @@ export default namespace webSocket {
 
     onOpen(callback: Callback<OpenResult>): void;
 
+    onOpenInfo(callback: Callback<WebSocketOpenInfo>): void;
+
     onMessage(callback: AsyncCallback<string | ArrayBuffer>): void;
 
     onWebSocketClose(callback: AsyncCallback<CloseResult>): void;
@@ -144,6 +158,8 @@ export default namespace webSocket {
     onHeaderReceive(callback: Callback<ResponseHeaders>): void;
 
     offOpen(callback?: Callback<OpenResult>): void;
+
+    offOpenInfo(callback?: Callback<WebSocketOpenInfo>): void;
 
     offMessage(callback?: AsyncCallback<string | ArrayBuffer>): void;
 
@@ -273,6 +289,7 @@ export default namespace webSocket {
     }
 
     native onOpenInner(callback: Callback<OpenResult>): void;
+    native onOpenInfoInner(callback: Callback<WebSocketOpenInfo>): void;
     native onMessageInner(callback: AsyncCallback<string | ArrayBuffer>): void;
     native onCloseInner(callback: AsyncCallback<CloseResult>): void;
     native onErrorInner(callback: ErrorCallback): void;
@@ -281,6 +298,10 @@ export default namespace webSocket {
 
     onOpen(callback: Callback<OpenResult>): void {
       this.onOpenInner(callback)
+    }
+
+    onOpenInfo(callback: Callback<WebSocketOpenInfo>): void {
+      this.onOpenInfoInner(callback)
     }
 
     onMessage(callback: AsyncCallback<string | ArrayBuffer>): void {
@@ -304,6 +325,7 @@ export default namespace webSocket {
     }
 
     native offOpenInner(callback?: Callback<OpenResult>): void;
+    native offOpenInfoInner(callback?: Callback<WebSocketOpenInfo>): void;
     native offMessageInner(callback?: AsyncCallback<string | ArrayBuffer>): void;
     native offCloseInner(callback?: AsyncCallback<CloseResult>): void;
     native offErrorInner(callback?: ErrorCallback): void;
@@ -315,6 +337,14 @@ export default namespace webSocket {
         this.offOpenInner()
       } else {
         this.offOpenInner(callback)
+      }
+    }
+
+    offOpenInfo(callback?: Callback<WebSocketOpenInfo>): void {
+      if (callback === undefined) {
+        this.offOpenInfoInner()
+      } else {
+        this.offOpenInfoInner(callback)
       }
     }
 

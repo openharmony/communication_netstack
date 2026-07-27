@@ -23,7 +23,7 @@ use ani_rs::{
 
 use crate::bridge::{
     get_web_socket_connection_client_ip, get_web_socket_connection_client_port,
-    socket_connection_push_data, AniClientCert, AniCloseResult, AniOpenResult,
+    socket_connection_push_data, AniClientCert, AniCloseResult, AniOpenInfo, AniOpenResult,
     AniWebSocketConnection, AniWebSocketMessage, AniData, AniResponseHeaders,
 };
 
@@ -44,6 +44,22 @@ pub fn on_open_websocket_client(client: Pin<&mut ffi::WebSocketClientWrapper>, m
                 message: message,
             };
             cb.execute((cr,));
+        }
+    }
+}
+
+pub fn on_open_info_websocket_client(client: Pin<&mut ffi::WebSocketClientWrapper>, message: String, status: u32,
+                                     protocol: String) {
+    let client_ptr = &*client as *const _ as *mut ffi::WebSocketClientWrapper as usize;
+    if let Some(&ws_ptr) = get_ws_client_map().lock().unwrap().get(&client_ptr) {
+        let ws = unsafe { &mut *(ws_ptr as *mut AniClient) };
+        if let Some(cb) = &ws.callback.on_open_info {
+            let info = AniOpenInfo {
+                status: status as i32,
+                message: message,
+                protocol: if protocol.is_empty() { None } else { Some(protocol) },
+            };
+            cb.execute((info,));
         }
     }
 }
@@ -117,6 +133,7 @@ pub fn header_push_data(header: &mut Vec<String>, data: String)
 
 pub struct CallBackWebSocketClient {
     pub on_open: Option<GlobalRefCallback<(AniOpenResult,)>>,
+    pub on_open_info: Option<GlobalRefCallback<(AniOpenInfo,)>>,
     pub on_message: Option<GlobalRefAsyncCallback<(AniData,)>>,
     pub on_close: Option<GlobalRefAsyncCallback<(AniCloseResult,)>>,
     pub on_error: Option<GlobalRefErrorCallback>,
@@ -128,6 +145,7 @@ impl CallBackWebSocketClient {
     pub fn new() -> Self {
         Self {
             on_open: None,
+            on_open_info: None,
             on_message: None,
             on_close: None,
             on_error: None,
@@ -213,6 +231,14 @@ impl AniClient {
         Ok(())
     }
 
+    pub fn on_open_info_native(&mut self) -> Result<(), i32> {
+        let ret = ffi::RegisterOpenInfoCallback(self.client.pin_mut());
+        if ret != 0 {
+            return Err(ret);
+        }
+        Ok(())
+    }
+
     pub fn on_message_native(&mut self) -> Result<(), i32> {
         let ret = ffi::RegisterMessageCallback(self.client.pin_mut());
         if ret != 0 {
@@ -261,6 +287,14 @@ impl AniClient {
         Ok(())
     }
 
+    pub fn off_open_info_native(&mut self) -> Result<(), i32> {
+        let ret = ffi::UnregisterOpenInfoCallback(self.client.pin_mut());
+        if ret != 0 {
+            return Err(ret);
+        }
+        Ok(())
+    }
+    
     pub fn off_message_native(&mut self) -> Result<(), i32> {
         let ret = ffi::UnregisterMessageCallback(self.client.pin_mut());
         if ret != 0 {
@@ -604,6 +638,8 @@ mod ffi {
     extern "Rust" {
         type AniClient;
         fn on_open_websocket_client(client: Pin<&mut WebSocketClientWrapper>, message: String, status: u32);
+        fn on_open_info_websocket_client(client: Pin<&mut WebSocketClientWrapper>, message: String, status: u32,
+                                         protocol: String);
         fn on_message_websocket_client(client: Pin<&mut WebSocketClientWrapper>, data: String, len: u32);
         fn on_close_websocket_client(client: Pin<&mut WebSocketClientWrapper>, reason: String, code: u32);
         fn on_error_websocket_client(client: Pin<&mut WebSocketClientWrapper>, errMessage: String, errCode: u32);
@@ -661,6 +697,8 @@ mod ffi {
 
         fn RegisterOpenCallback(client: Pin<&mut WebSocketClientWrapper>) -> i32;
 
+        fn RegisterOpenInfoCallback(client: Pin<&mut WebSocketClientWrapper>) -> i32;
+
         fn RegisterMessageCallback(client: Pin<&mut WebSocketClientWrapper>) -> i32;
 
         fn RegisterCloseCallback(client: Pin<&mut WebSocketClientWrapper>) -> i32;
@@ -672,6 +710,8 @@ mod ffi {
         fn RegisterHeaderReceiveCallback(client: Pin<&mut WebSocketClientWrapper>) -> i32;
 
         fn UnregisterOpenCallback(client: Pin<&mut WebSocketClientWrapper>) -> i32;
+
+        fn UnregisterOpenInfoCallback(client: Pin<&mut WebSocketClientWrapper>) -> i32;
 
         fn UnregisterMessageCallback(client: Pin<&mut WebSocketClientWrapper>) -> i32;
 

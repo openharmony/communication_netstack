@@ -43,6 +43,9 @@ uint32_t NetStackVerifyCertificationCa(const CertBlob &cert, const CertBlob &caC
 uint32_t NetStackVerifyCertification(const CertBlob &cert);
 rust::String GetErrorCodeAndMessage(int32_t &errorCode);
 
+uint32_t NetStackVerifyCertChain(const rust::Vec<CertBlob> &certs, const CertBlob &caCert,
+                                 const rust::String &hostname, rust::Vec<CertBlob> &outCerts);
+
 } // namespace NetStackAni
 } // namespace OHOS
 

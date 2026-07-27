@@ -57,6 +57,7 @@ int32_t Close(WebSocketClientWrapper &client,
               AniCloseOption options);
 
 int32_t RegisterOpenCallback(WebSocketClientWrapper &client);
+int32_t RegisterOpenInfoCallback(WebSocketClientWrapper &client);
 int32_t RegisterMessageCallback(WebSocketClientWrapper &client);
 int32_t RegisterCloseCallback(WebSocketClientWrapper &client);
 int32_t RegisterErrorCallback(WebSocketClientWrapper &client);
@@ -64,6 +65,7 @@ int32_t RegisterDataEndCallback(WebSocketClientWrapper &client);
 int32_t RegisterHeaderReceiveCallback(WebSocketClientWrapper &client);
 
 int32_t UnregisterOpenCallback(WebSocketClientWrapper &client);
+int32_t UnregisterOpenInfoCallback(WebSocketClientWrapper &client);
 int32_t UnregisterMessageCallback(WebSocketClientWrapper &client);
 int32_t UnregisterCloseCallback(WebSocketClientWrapper &client);
 int32_t UnregisterErrorCallback(WebSocketClientWrapper &client);
