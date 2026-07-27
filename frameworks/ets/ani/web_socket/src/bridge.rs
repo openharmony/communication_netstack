@@ -122,6 +122,23 @@ pub struct AniOpenResult {
     pub message: String,
 }
 
+#[ani_rs::ani(path = "@ohos.net.webSocket.webSocket.WebSocketOpenInfoInner")]
+pub struct AniOpenInfo {
+    pub status: i32,
+    pub message: String,
+    pub protocol: Option<String>,
+}
+
+impl AniOpenInfo {
+    pub fn new() -> Self {
+        Self {
+            status: 0,
+            message: "".to_string(),
+            protocol: None,
+        }
+    }
+}
+
 #[ani_rs::ani(path = "@ohos.net.webSocket.webSocket.WebSocketCloseOptionsInner")]
 pub struct AniWebSocketCloseOptions {
     pub code: Option<i32>,

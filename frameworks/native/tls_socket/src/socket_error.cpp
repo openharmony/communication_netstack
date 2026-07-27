@@ -20,7 +20,6 @@
 
 #include <openssl/err.h>
 #include <openssl/ssl.h>
-#include "base_context.h"
 
 namespace OHOS {
 namespace NetStack {
@@ -28,6 +27,8 @@ namespace TlsSocket {
 static constexpr int32_t ERROR_DIVISOR = 1000;
 static constexpr int32_t ERROR_RANGE = 500;
 static constexpr const size_t MAX_ERR_LEN = 1024;
+static constexpr int32_t PERMISSION_DENIED_CODE = 201;
+static constexpr const char *PERMISSION_DENIED_MSG = "Permission denied";
 static constexpr int32_t PARSE_ERROR_CODE = 401;
 static constexpr const char *PARSE_ERROR_MSG = "Parameter error";
 

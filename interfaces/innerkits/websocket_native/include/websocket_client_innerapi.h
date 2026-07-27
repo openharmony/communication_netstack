@@ -54,6 +54,12 @@ struct OpenResult {
     const char *message;
 };
 
+struct OpenInfo {
+    unsigned int status;
+    const char *message;
+    const char *protocol;
+};
+
 struct OpenOptions {
     std::map<std::string, std::string> headers;
     bool supportOriginPort = false;
@@ -67,6 +73,7 @@ public:
     typedef void (*OnCloseCallback)(WebSocketClient *client, CloseResult closeResult);
     typedef void (*OnErrorCallback)(WebSocketClient *client, ErrorResult error);
     typedef void (*OnOpenCallback)(WebSocketClient *client, OpenResult openResult);
+    typedef void (*OnOpenInfoCallback)(WebSocketClient *client, OpenInfo openInfo);
     typedef void (*OnHeaderReceiveCallback)(WebSocketClient *client, const std::map<std::string, std::string> &headers);
     typedef void (*OnDataEndCallback)(WebSocketClient *client);
 
@@ -87,6 +94,7 @@ public:
     OnCloseCallback onCloseCallback_ = nullptr;
     OnErrorCallback onErrorCallback_ = nullptr;
     OnOpenCallback onOpenCallback_ = nullptr;
+    OnOpenInfoCallback onOpenInfoCallback_ = nullptr;
     OnHeaderReceiveCallback onHeaderReceiveCallback_ = nullptr;
     OnDataEndCallback onDataEndCallback_ = nullptr;
     ClientContext *GetClientContext() const;

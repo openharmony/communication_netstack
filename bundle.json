@@ -133,6 +133,22 @@
                     }
                 },
                 {
+                    "type": "so",
+                    "name": "//foundation/communication/netstack/interfaces/innerkits/socket_native:socket_native",
+                    "header": {
+                        "header_files": [
+                            "local_socket_client_innerapi.h",
+                            "local_socket_server_innerapi.h",
+                            "udp_socket_innerapi.h",
+                            "tcp_socket_client_innerapi.h",
+                            "tcp_socket_server_innerapi.h",
+                            "tls_socket_client_innerapi.h",
+                            "tls_socket_server_innerapi.h"
+                        ],
+                        "header_base": "//foundation/communication/netstack/interfaces/innerkits/socket_native/include"
+                    }
+                },
+                {
                     "header": {
                         "header_base": [],
                         "header_files": []

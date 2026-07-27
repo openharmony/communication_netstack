@@ -122,6 +122,19 @@ void OnOpenCallbackC(NetStack::WebSocketClient::WebSocketClient *client,
     on_open_websocket_client(*(iter->second), std::string(openResult.message), openResult.status);
 }
 
+void OnOpenInfoCallbackC(NetStack::WebSocketClient::WebSocketClient *client,
+    NetStack::WebSocketClient::OpenInfo openInfo)
+{
+    std::shared_lock<std::shared_mutex> lock(clientMapMutex);
+    auto iter = clientMap.find(client);
+    if (iter == clientMap.end()) {
+        NETSTACK_LOGE("OnOpenInfoCallbackC can not find client");
+        return;
+    }
+    on_open_info_websocket_client(*(iter->second), std::string(openInfo.message), openInfo.status,
+                                  std::string(openInfo.protocol));
+}
+
 void OnMessageCallbackC(NetStack::WebSocketClient::WebSocketClient *client, const std::string &data, size_t length)
 {
     std::shared_lock<std::shared_mutex> lock(clientMapMutex);
@@ -257,6 +270,18 @@ int32_t UnregisterErrorCallback(WebSocketClientWrapper &client)
 int32_t UnregisterDataEndCallback(WebSocketClientWrapper &client)
 {
     client.client->onDataEndCallback_ = nullptr;
+    return 0;
+}
+
+int32_t RegisterOpenInfoCallback(WebSocketClientWrapper &client)
+{
+    client.client->onOpenInfoCallback_ = &OnOpenInfoCallbackC;
+    return 0;
+}
+
+int32_t UnregisterOpenInfoCallback(WebSocketClientWrapper &client)
+{
+    client.client->onOpenInfoCallback_ = nullptr;
     return 0;
 }
 

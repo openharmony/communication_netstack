@@ -64,3 +64,13 @@ pub fn cert_verification_sync(
     let _ = convert_to_business_error(&mut res);
     Ok(res)
 }
+
+#[ani_rs::native]
+pub fn verify_cert_chain_sync(
+    cert: Vec<CertBlob>,
+    ca_cert: Option<CertBlob>,
+    hostname: Option<String>,
+) -> Result<Vec<CertBlob>, BusinessError> {
+    NetworkSecurityClient::verify_cert_chain(cert, ca_cert, hostname)
+        .map_err(|mut e| convert_to_business_error(&mut e))
+}

@@ -24,5 +24,8 @@ group("ani_package") {
     "web_socket:websocket_ani",
     "web_socket:websocket",
     "web_socket:websocket_etc",
+    "socket:socket_ani",
+    "socket:socket",
+    "socket:socket_etc",
   ]
 }

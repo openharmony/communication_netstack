@@ -1,0 +1,156 @@
+# Copyright (c) 2025-2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/ohos.gni")
+import("//foundation/communication/netstack/netstack_config.gni")
+
+TLS = "$NETSTACK_NATIVE_ROOT/tls_socket"
+
+tls_sources = [
+  "$TLS/src/secure_data.cpp",
+  "$TLS/src/socket_error.cpp",
+  "$TLS/src/tls_certificate.cpp",
+  "$TLS/src/tls_configuration.cpp",
+  "$TLS/src/tls_context.cpp",
+  "$TLS/src/tls_context_server.cpp",
+  "$TLS/src/tls_key.cpp",
+  "$TLS/src/tls_utils.cpp",
+]
+
+PROXY = "$NETSTACK_NATIVE_ROOT/proxy"
+
+proxy_sources = [
+  "$PROXY/src/socks5_instance.cpp",
+  "$PROXY/src/socks5_none_method.cpp",
+  "$PROXY/src/socks5_package.cpp",
+  "$PROXY/src/socks5_passwd_method.cpp",
+  "$PROXY/src/socks5_utils.cpp",
+]
+
+config("socket_native_config") {
+  include_dirs = [ 
+    "$NETSTACK_DIR/interfaces/innerkits/socket_native/include",
+    "$NETSTACK_DIR/frameworks/native/socket_native/constant/include",
+    "$NETSTACK_DIR/frameworks/native/socket_native/options/include",
+    "$NETSTACK_DIR/frameworks/native/socket_native/socket_exec/include",
+    "$NETSTACK_DIR/frameworks/native/tls_socket/include",
+    "$NETSTACK_DIR/frameworks/native/proxy/include",
+  ]
+
+  cflags = []
+  if (is_double_framework) {
+    cflags += [ "-DCONFIG_DUAL_FRAMEWORK" ]
+  }
+  if (target_cpu == "arm") {
+    cflags += [ "-DBINDER_IPC_32BIT" ]
+  }
+  if (is_standard_system) {
+    cflags += [ "-DCONFIG_STANDARD_SYSTEM" ]
+  }
+  if (defined(build_public_version) && build_public_version) {
+    cflags += [ "-DBUILD_PUBLIC_VERSION" ]
+  }
+
+  if (is_mingw) {
+    defines = [ "WINDOWS_PLATFORM" ]
+  } else if (is_mac) {
+    defines = [ "MAC_PLATFORM" ]
+  }
+}
+
+ohos_shared_library("socket_native") {
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  branch_protector_ret = "pac_ret"
+
+  sources = [
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/socket_exec/src/tls_socket_server.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/socket_exec/src/tls_socket_client.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/socket_exec/src/local_socket_client.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/socket_exec/src/local_socket_server.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/socket_exec/src/udp_socket.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/socket_exec/src/tcp_socket_client.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/socket_exec/src/connect_monitor.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/socket_exec/src/tcp_socket_server.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/socket_exec/src/socket_exec_common.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/socket_exec/src/socket_exec_error.cpp",
+
+    # Options data models
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/options/src/extra_options_base.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/options/src/local_socket_options.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/options/src/net_address.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/options/src/socket_remote_info.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/options/src/socket_state_base.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/options/src/tcp_connect_options.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/options/src/tcp_extra_options.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/options/src/tcp_send_options.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/options/src/udp_extra_options.cpp",
+    "$SUBSYSTEM_DIR/netstack/frameworks/native/socket_native/options/src/udp_send_options.cpp",
+  ]
+
+  sources += tls_sources
+  sources += proxy_sources
+
+  include_dirs = [
+    "$NETSTACK_DIR/utils/common_utils/include",
+    "$NETSTACK_DIR/utils/log/include",
+    "$TLS/include",
+    "$PROXY/include",
+  ]
+
+  cflags = [
+    "-fstack-protector-strong",
+    "-D_FORTIFY_SOURCE=2",
+    "-O2",
+  ]
+  cflags_cc = [
+    "-fstack-protector-strong",
+    "-D_FORTIFY_SOURCE=2",
+    "-O2",
+  ]
+
+  public_configs = [ ":socket_native_config" ]
+
+  version_script = "libsocket_native.map"
+
+  deps = [
+    "$NETSTACK_DIR/utils:stack_utils_common",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "bounds_checking_function:libsec_shared",
+    "hilog:libhilog",
+    "openssl:libcrypto_shared",
+    "openssl:libssl_shared",
+  ]
+
+  if (is_mingw || is_mac) {
+    sources +=
+        [ "$NETSTACK_DIR/utils/common_utils/src/netstack_common_utils.cpp" ]
+  } else {
+    deps += [ "$NETSTACK_DIR/utils:stack_utils_common" ]
+    external_deps += [ "hilog:libhilog" ]
+    if (product_name != "ohos-sdk") {
+      external_deps += [ "init:libbegetutil" ]
+    }
+  }
+
+  innerapi_tags = [ "platformsdk" ]
+  part_name = "netstack"
+  subsystem_name = "communication"
+}
