@@ -2536,7 +2536,14 @@ bool HttpExec::ParseHostAndPortFromUrl(const std::string &url, std::string &host
         curl_free(chost);
     }
     if (cport != nullptr) {
-        port = atoi(cport);
+        uint16_t parsedPort = 0;
+        const char *portEnd = cport + strlen(cport);
+        auto parsed = std::from_chars(cport, portEnd, parsedPort);
+        if (parsed.ec == std::errc{} && parsed.ptr == portEnd) {
+            port = parsedPort;
+        } else {
+            port = 0;
+        }
         curl_free(cport);
     }
     curl_url_cleanup(cu);
