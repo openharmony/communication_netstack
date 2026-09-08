@@ -116,7 +116,6 @@ bool BaseContext::CreateAsyncWork(const std::string &name, AsyncWorkExecutor exe
     asyncWorkName_ = name;
     napi_status queueRet = napi_queue_async_work_with_qos(env_, asyncWork_, napi_qos_default);
     if (queueRet != napi_ok) {
-        NETSTACK_LOGE("napi_queue_async_work_with_qos failed, ret = %{public}d", queueRet);
         (void)napi_delete_async_work(env_, asyncWork_);
         asyncWork_ = nullptr;
         asyncWorkBack1_ = nullptr;
