@@ -36,6 +36,7 @@ public:
 public:
     const char *Data() const;
     size_t Length() const;
+    void Clear();
 
 private:
     size_t length_ = 0;
