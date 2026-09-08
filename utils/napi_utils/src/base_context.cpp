@@ -114,7 +114,17 @@ bool BaseContext::CreateAsyncWork(const std::string &name, AsyncWorkExecutor exe
         return false;
     }
     asyncWorkName_ = name;
-    (void)napi_queue_async_work_with_qos(env_, asyncWork_, napi_qos_default);
+    napi_status queueRet = napi_queue_async_work_with_qos(env_, asyncWork_, napi_qos_default);
+    if (queueRet != napi_ok) {
+        NETSTACK_LOGE("napi_queue_async_work_with_qos failed, ret = %{public}d", queueRet);
+        (void)napi_delete_async_work(env_, asyncWork_);
+        asyncWork_ = nullptr;
+        asyncWorkBack1_ = nullptr;
+        asyncWorkBack2_ = nullptr;
+        asyncWorkBack3_ = nullptr;
+        asyncWorkBack4_ = nullptr;
+        return false;
+    }
 
     return true;
 }
