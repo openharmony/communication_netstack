@@ -398,14 +398,14 @@ public:
     {
         auto it = wsServerBinaryData_.find(wsi);
         if (it != wsServerBinaryData_.end()) {
-            if (it->second.size() + length > CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE) {
+            if (length > static_cast<size_t>(CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE) - it->second.size()) {
                 NETSTACK_LOGE("Append Server Binary Data exceeds max limit");
                 ClearWsServerBinaryData(wsi);
                 return WebSocketClient::WEBSOCKET_DATA_LENGTH_EXCEEDS;
             }
             it->second.append(reinterpret_cast<char *>(data), length);
         } else {
-            if (length > CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE) {
+            if (length > static_cast<size_t>(CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE)) {
                 NETSTACK_LOGE("Append Server Binary Data exceeds max limit");
                 return WebSocketClient::WEBSOCKET_DATA_LENGTH_EXCEEDS;
             }
@@ -418,14 +418,14 @@ public:
     {
         auto it = wsServerTextData_.find(wsi);
         if (it != wsServerTextData_.end()) {
-            if (it->second.size() + length > CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE) {
+            if (length > static_cast<size_t>(CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE) - it->second.size()) {
                 NETSTACK_LOGE("AppendWsServerTextData exceeds max limit");
                 ClearWsServerTextData(wsi);
                 return WebSocketClient::WEBSOCKET_DATA_LENGTH_EXCEEDS;
             }
             it->second.append(reinterpret_cast<char *>(data), length);
         } else {
-            if (length > CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE) {
+            if (length > static_cast<size_t>(CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE)) {
                 NETSTACK_LOGE("AppendWsServerTextData exceeds max limit");
                 return WebSocketClient::WEBSOCKET_DATA_LENGTH_EXCEEDS;
             }

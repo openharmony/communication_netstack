@@ -311,6 +311,8 @@ void TLSKey::Clear(bool deep)
         }
         opaque_ = nullptr;
     }
+    keyPass_.Clear();
+    keyData_.Clear();
 }
 
 KeyAlgorithm TLSKey::Algorithm() const

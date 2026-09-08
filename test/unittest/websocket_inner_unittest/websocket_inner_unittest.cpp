@@ -392,6 +392,14 @@ namespace {
         EXPECT_TRUE(localClient->GetData().empty());
     }
 
+    HWTEST_F(WebSocketTest, WebSocketClientAppendDataNull001, TestSize.Level2)
+    {
+        auto localClient = std::make_unique<OHOS::NetStack::WebSocketClient::WebSocketClient>();
+        int ret = localClient->AppendData(nullptr, 3);
+        EXPECT_EQ(ret, WebSocketErrorCode::WEBSOCKET_SEND_DATA_NULL);
+        EXPECT_TRUE(localClient->GetData().empty());
+    }
+
     HWTEST_F(WebSocketTest, WebSocketClientRunLwsThread007, TestSize.Level1)
     {
         auto clients = std::make_shared<OHOS::NetStack::WebSocketClient::WebSocketClient>();

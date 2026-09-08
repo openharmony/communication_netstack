@@ -18,6 +18,7 @@
 #include <fstream>
 #include <filesystem>
 
+#include "cJSON.h"
 #include "gtest/gtest.h"
 #include "disk_handler.h"
 #include "lru_cache.h"
@@ -297,5 +298,36 @@ HWTEST_F(HttpClientLruCacheTest, Put005, TestSize.Level1)
 
     std::unordered_map<std::string, std::string> value = lruCache.Get(key);
     EXPECT_TRUE(!value.empty());
+}
+
+HWTEST_F(HttpClientLruCacheTest, ReadCacheFromJsonValueKeyItemStringNull001, TestSize.Level2)
+{
+    LRUCache lruCache(1024);
+    cJSON *root = cJSON_CreateArray();
+    ASSERT_NE(root, nullptr);
+    cJSON *keyItem = cJSON_CreateObject();
+    ASSERT_NE(keyItem, nullptr);
+    cJSON_AddItemToArray(root, keyItem);
+    lruCache.ReadCacheFromJsonValue(root);
+    cJSON_Delete(root);
+    std::unordered_map<std::string, std::string> value = lruCache.Get("key1");
+    EXPECT_TRUE(value.empty());
+}
+
+HWTEST_F(HttpClientLruCacheTest, ReadCacheFromJsonValueValueItemStringNull001, TestSize.Level2)
+{
+    LRUCache lruCache(1024);
+    cJSON *root = cJSON_CreateObject();
+    ASSERT_NE(root, nullptr);
+    cJSON *keyItem = cJSON_CreateObject();
+    ASSERT_NE(keyItem, nullptr);
+    cJSON_AddItemToObject(root, "key1", keyItem);
+    cJSON *valueItem = cJSON_CreateString("value1");
+    ASSERT_NE(valueItem, nullptr);
+    cJSON_AddItemToArray(keyItem, valueItem);
+    lruCache.ReadCacheFromJsonValue(root);
+    cJSON_Delete(root);
+    std::unordered_map<std::string, std::string> value = lruCache.Get("key1");
+    EXPECT_TRUE(value.empty());
 }
 } // namespace
