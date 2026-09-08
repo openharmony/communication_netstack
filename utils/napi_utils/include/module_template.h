@@ -199,9 +199,9 @@ napi_value InterfaceWithOutAsyncWorkWithManagerWrapper(napi_env env, napi_callba
             NETSTACK_LOGE("work failed error code = %{public}d", context->GetErrorCode());
         }
     }
-    auto sharedManager = context->GetSharedManager();
+    auto sm = context->GetSharedManager();
     if (!context->IsParseOK() || context->IsPermissionDenied() || context->IsNoAllowedHost() ||
-        context->IsCleartextNotPermitted() || (sharedManager && sharedManager->IsEventDestroy())) {
+        context->IsCleartextNotPermitted() || (sm && sm->IsEventDestroy())) {
         if (!context->CreateAsyncWork(asyncWorkName, executor, callback)) {
             delete context;
         }
@@ -252,9 +252,9 @@ napi_value InterfaceWithOutAsyncWorkWithSharedManager(napi_env env, napi_callbac
             NETSTACK_LOGE("work failed error code = %{public}d", context->GetErrorCode());
         }
     }
-    auto sharedManager = context->GetSharedManager();
+    auto sm = context->GetSharedManager();
     if (!context->IsParseOK() || context->IsPermissionDenied() || context->IsNoAllowedHost() ||
-        context->IsCleartextNotPermitted() || (sharedManager && sharedManager->IsEventDestroy())) {
+        context->IsCleartextNotPermitted() || (sm && sm->IsEventDestroy())) {
         if (!context->CreateAsyncWork(asyncWorkName, executor, callback)) {
             delete context;
         }
