@@ -15,12 +15,22 @@
 
 #include "lru_cache_disk_handler.h"
 
+#include <charconv>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
 #include "netstack_log.h"
 
 namespace OHOS::NetStack::Http {
+
+namespace {
+long ParseLruIndex(const std::string &value)
+{
+    long result = 0;
+    auto parsed = std::from_chars(value.data(), value.data() + value.size(), result);
+    return parsed.ec == std::errc{} && parsed.ptr == value.data() + value.size() ? result : 0;
+}
+} // namespace
 
 static size_t GetMapValueSize(const std::unordered_map<std::string, std::string> &m)
 {
@@ -194,8 +204,7 @@ void LRUCache::ReadCacheFromJsonValue(const cJSON* root)
         }
     }
     std::sort(nodeVec.begin(), nodeVec.end(), [](Node &a, Node &b) {
-        return std::strtol(a.value[LRU_INDEX].c_str(), nullptr, DECIMAL_BASE) >
-               std::strtol(b.value[LRU_INDEX].c_str(), nullptr, DECIMAL_BASE);
+        return ParseLruIndex(a.value[LRU_INDEX]) > ParseLruIndex(b.value[LRU_INDEX]);
     });
     for (auto &node : nodeVec) {
         node.value.erase(LRU_INDEX);
