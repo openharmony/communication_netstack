@@ -35,6 +35,8 @@ public:
 
     static int LwsCallback(lws *wsi, lws_callback_reasons reason, void *user, void *in, size_t len);
 
+    static void Destroy(CJWebsocketProxy *websocketProxy);
+
 private:
     static bool ParseUrl(WebSocketConnectContext *context, char *prefix,
                          size_t prefixLen, char *address, size_t addressLen,
