@@ -119,12 +119,9 @@ uint32_t TlvUtils::Encode(DfxMessage &msg, void *data, uint32_t &dataSize)
     GenerateTlv(msg, tlvs, &fieldCount);
 
     if (data == nullptr) {
-        data = malloc(BUFFER_MAX_SIZE);
-        if (data == nullptr) {
-            NETSTACK_LOGE("tlv encode malloc data failed");
-            free(tlvsTemp);
-            return TLV_ERR;
-        }
+        NETSTACK_LOGE("tlv encode data is nullptr, caller must pre-allocate");
+        free(tlvsTemp);
+        return TLV_ERR;
     }
     (void) memset_s(data, BUFFER_MAX_SIZE, 0, BUFFER_MAX_SIZE);
     uint32_t ret = Serialize(tlvs, fieldCount, static_cast<uint8_t *>(data), BUFFER_MAX_SIZE,
