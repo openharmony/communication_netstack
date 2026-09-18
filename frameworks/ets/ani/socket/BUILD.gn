@@ -1,0 +1,140 @@
+# Copyright (c) 2026 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/config/components/ets_frontend/ets2abc_config.gni")
+import("//foundation/communication/netstack/netstack_config.gni")
+import("//build/ohos.gni")
+
+rust_cxx("socket_ani_cxx") {
+  sources = [ "src/wrapper.rs" ]
+}
+
+ohos_static_library("socket_ani_static") {
+  sanitize = {
+    integer_overflow = true
+    ubsan = true
+    boundary_sanitize = true
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
+
+  include_dirs = [
+    "include",
+    "${target_gen_dir}/src",
+    "$NETSTACK_DIR/utils/log/include",
+  ]
+  sources = [ 
+    "src/cxx/ffi_convert.cpp",
+    "src/cxx/udp_socket_ani.cpp",
+    "src/cxx/local_socket_ani.cpp",
+    "src/cxx/tcp_socket_ani.cpp",
+    "src/cxx/tls_socket_ani.cpp",
+  ]
+  sources += get_target_outputs(":socket_ani_cxx")
+  
+  cflags = [
+    "-fdata-sections",
+    "-ffunction-sections",
+    "-O3",
+    "-flto",
+    "-fno-exceptions",
+    "-fno-rtti",
+  ]
+
+  deps = [
+    ":socket_ani_cxx",
+    "$NETSTACK_DIR/interfaces/innerkits/socket_native:socket_native",
+    "$NETSTACK_DIR/utils:stack_utils_common"
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_core",
+    "netmanager_base:net_conn_manager_if",
+    "rust_cxx:cxx_cppdeps",
+    "openssl:libcrypto_shared",
+    "openssl:libssl_shared",
+  ]
+
+  part_name = "netstack"
+  subsystem_name = "communication"
+}
+
+ohos_rust_shared_library("socket_ani") {
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    boundary_sanitize = true
+    all_ubsan = true
+    debug = false
+  }
+
+  ldflags = [
+    "-Wl,--exclude-libs=ALL",
+    "-Wl,--gc-sections",
+    "-Wl,--strip-all",
+    "-flto",
+  ]
+
+  rustflags = [
+    "-C", "opt-level=z",
+    "-C", "debuginfo=0",
+    "-C", "link-arg=-ffunction-sections",
+    "-C", "link-arg=-fdata-sections",
+    "-C", "link-arg=-Wl,--gc-sections",
+    "-C", "link-arg=-Wl,--strip-all",
+    "-Z", "dylib-lto",
+    "-Z", "stack-protector=all",
+    "-C", "codegen-units=1",
+    "-C", "link-arg=-flto",
+    "-C", "overflow-checks=no",
+    "-C", "code-model=small",
+    "-Z", "location-detail=none",
+    "-Z", "dump-mir=deadcode",
+  ]
+
+  sources = [ "src/lib.rs" ]
+  
+  external_deps = [
+    "runtime_core:ani",
+    "hilog:hilog_rust",
+    "hilog:libhilog",
+    "netmanager_base:ani_rs",
+    "rust_cxx:lib"
+  ]
+  deps = [
+    ":socket_ani_static",
+    "../common:netstack_common",
+    "//third_party/rust/crates/serde/serde:lib"
+  ]
+  clippy_lints = "none"
+  part_name = "netstack"
+  subsystem_name = "communication"
+  output_extension = "so"
+}
+
+generate_static_abc("socket") {
+  base_url = "./ets"
+  files = [ "ets/@ohos.net.socket.ets" ]
+  is_boot_abc = "True"
+  device_dst_file = "/system/framework/socket.abc"
+}
+
+ohos_prebuilt_etc("socket_etc") {
+  source = "$target_out_dir/socket.abc"
+  module_install_dir = "framework"
+  part_name = "netstack"
+  subsystem_name = "communication"
+  deps = [ ":socket" ]
+}

@@ -131,6 +131,18 @@ pub(crate) fn on_open(
 }
 
 #[ani_rs::native]
+pub(crate) fn on_open_info(
+    env: &AniEnv,
+    this: bridge::AniWebSocket,
+    callback: AniFnObject,
+) -> Result<(), BusinessError> {
+    let web_socket = unsafe { &mut (*(this.nativePtr as *mut AniClient)) };
+    web_socket.callback.on_open_info = Some(callback.into_global_callback(env).unwrap());
+    web_socket.on_open_info_native();
+    Ok(())
+}
+
+#[ani_rs::native]
 pub(crate) fn off_open(
     env: &AniEnv,
     this: bridge::AniWebSocket,
@@ -139,6 +151,18 @@ pub(crate) fn off_open(
     let web_socket = unsafe { &mut (*(this.nativePtr as *mut AniClient)) };
     web_socket.callback.on_open = None;
     web_socket.off_open_native();
+    Ok(())
+}
+
+#[ani_rs::native]
+pub(crate) fn off_open_info(
+    env: &AniEnv,
+    this: bridge::AniWebSocket,
+    callback: AniFnObject,
+) -> Result<(), BusinessError> {
+    let web_socket = unsafe { &mut (*(this.nativePtr as *mut AniClient)) };
+    web_socket.callback.on_open_info = None;
+    web_socket.off_open_info_native();
     Ok(())
 }
 

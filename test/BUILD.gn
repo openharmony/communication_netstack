@@ -19,6 +19,7 @@ group("netstack_test") {
     "unittest/http_client:unittest",
     "unittest/netssl:unittest",
     "unittest/socket:unittest",
+    "unittest/socket_native_test:unittest",
     "unittest/tlssocket:unittest",
     "unittest/utils/common_utils:unittest",
     "unittest/utils/profiler_utils:unittest",
@@ -27,7 +28,6 @@ group("netstack_test") {
     "unittest/websocket_inner_unittest:unittest",
     "unittest/net_http:unittest",
     "unittest/utils/http_handover_handler:unittest",
-    "unittest/websocket:unittest",
     "unittest/http_interceptor:unittest",
   ]
 }

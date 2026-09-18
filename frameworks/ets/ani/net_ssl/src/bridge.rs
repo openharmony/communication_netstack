@@ -26,7 +26,7 @@ pub enum CertType {
     CertTypeDer = 1,
 }
 
-#[ani_rs::ani(path = "@ohos.net.networkSecurity.networkSecurity.CertBlob")]
+#[ani_rs::ani(path = "@ohos.net.networkSecurity.networkSecurity.CertBlobInner")]
 pub struct CertBlob {
     pub type_: CertType,
     pub data: Data,

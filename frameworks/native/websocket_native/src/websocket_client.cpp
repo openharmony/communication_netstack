@@ -61,6 +61,7 @@ static constexpr const char *CLOSE_REASON_FORM_SERVER = "websocket close from se
 static constexpr const int FUNCTION_PARAM_TWO = 2;
 static constexpr const char *WEBSOCKET_CLIENT_THREAD_RUN = "OS_NET_WSCli";
 static constexpr const char *WEBSOCKET_SYSTEM_PREPARE_CA_PATH = "/etc/security/certificates";
+static constexpr const int MAX_PROTOCOL_LENGTH = 1024;
 #ifdef HAS_NETMANAGER_BASE
 static constexpr const int32_t UID_TRANSFORM_DIVISOR = 200000;
 static constexpr const char *BASE_PATH = "/data/certificates/user_cacerts/";
@@ -356,6 +357,10 @@ int LwsCallbackClientFilterPreEstablish(lws *wsi, lws_callback_reasons reason, v
     if (lws_hdr_copy(wsi, statusLine, MAX_HDR_LENGTH, WSI_TOKEN_HTTP) < 0 || strlen(statusLine) == 0) {
         return HttpDummy(wsi, reason, user, in, len);
     }
+    char protocolChar[MAX_PROTOCOL_LENGTH] = {0};
+    if (lws_hdr_copy(wsi, protocolChar, MAX_PROTOCOL_LENGTH, WSI_TOKEN_PROTOCOL) > 0) {
+        client->GetClientContext()->openProtocol = protocolChar;
+    }
     auto vec = Split(statusLine, STATUS_LINE_SEP, STATUS_LINE_ELEM_NUM);
     if (vec.size() >= FUNCTION_PARAM_TWO) {
         client->GetClientContext()->openMessage = vec[1];
@@ -370,8 +375,8 @@ int LwsCallbackClientFilterPreEstablish(lws *wsi, lws_callback_reasons reason, v
             lws_hdr_copy(wsi, buffer, sizeof(buffer), static_cast<lws_token_indexes>(i));
             std::string str;
             if (lws_token_to_string(static_cast<lws_token_indexes>(i))) {
-                str =
-                    std::string(reinterpret_cast<const char *>(lws_token_to_string(static_cast<lws_token_indexes>(i))));
+                str = std::string(reinterpret_cast<const char *>(
+                    lws_token_to_string(static_cast<lws_token_indexes>(i))));
             }
             if (!str.empty() && str.back() == ':') {
                 responseHeader.emplace(str.substr(0, str.size() - 1), std::string(buffer));
@@ -379,15 +384,11 @@ int LwsCallbackClientFilterPreEstablish(lws *wsi, lws_callback_reasons reason, v
         }
     }
     lws_hdr_custom_name_foreach(
-        wsi,
-        [](const char *name, int nlen, void *opaque) -> void {
-            auto header = static_cast<std::map<std::string, std::string> *>(opaque);
-            if (header == nullptr) {
-                return;
+        wsi, [](const char *name, int nlen, void *opaque) -> void {
+            if (auto header = static_cast<std::map<std::string, std::string> *>(opaque)) {
+                header->emplace(std::string(name).substr(0, nlen - 1), std::string(name).substr(nlen));
             }
-            header->emplace(std::string(name).substr(0, nlen - 1), std::string(name).substr(nlen));
-        },
-        &responseHeader);
+        }, &responseHeader);
     if (client->onHeaderReceiveCallback_) {
         client->onHeaderReceiveCallback_(client, responseHeader);
     }
@@ -431,6 +432,13 @@ int LwsCallbackClientEstablished(lws *wsi, lws_callback_reasons reason, void *us
     openResult.message = ctx->openMessage.c_str();
     if (client->onOpenCallback_) {
         client->onOpenCallback_(client, openResult);
+    }
+    OpenInfo openInfo;
+    openInfo.status = client->GetClientContext()->openStatus;
+    openInfo.message = client->GetClientContext()->openMessage.c_str();
+    openInfo.protocol = client->GetClientContext()->openProtocol.c_str();
+    if (client->onOpenInfoCallback_) {
+        client->onOpenInfoCallback_(client, openInfo);
     }
     return HttpDummy(wsi, reason, user, in, len);
 }
