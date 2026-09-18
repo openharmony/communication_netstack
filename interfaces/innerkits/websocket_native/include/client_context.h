@@ -254,6 +254,7 @@ public:
     std::string hostNameForStats;
 
     std::string httpVersion = "HTTP/1.1";
+    std::string openProtocol;
 
 private:
     bool closed_ = false;

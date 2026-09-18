@@ -45,6 +45,61 @@ impl NetworkSecurityClient {
         };
         ret as i32
     }
+
+    pub fn verify_cert_chain(
+        certs: Vec<CertBlob>,
+        ca_cert: Option<CertBlob>,
+        hostname: Option<String>,
+    ) -> Result<Vec<CertBlob>, i32> {
+        let ffi_certs: Vec<ffi::CertBlob> = certs.into_iter().map(|c| c.into()).collect();
+        let ffi_ca_cert = ca_cert.map(ffi::CertBlob::from).unwrap_or_default();
+        let hostname_str = hostname.unwrap_or_default();
+
+        let mut out_chain: Vec<ffi::CertBlob> = Vec::new();
+        let ret_code = ffi::NetStackVerifyCertChain(&ffi_certs, &ffi_ca_cert, &hostname_str, &mut out_chain);
+
+        if ret_code != 0 {
+            return Err(ret_code as i32);
+        }
+
+        let result: Vec<bridge::CertBlob> = out_chain
+            .iter()
+            .map(|c| bridge::CertBlob::from(c))
+            .collect();
+        Ok(result)
+    }
+}
+
+impl Default for ffi::CertBlob {
+    fn default() -> Self {
+        ffi::CertBlob {
+            cert_type: ffi::CertType::CERT_TYPE_MAX,
+            data: Vec::new(),
+        }
+    }
+}
+
+impl From<&ffi::CertBlob> for bridge::CertBlob {
+    fn from(cert_blob: &ffi::CertBlob) -> Self {
+        let data = if cert_blob.cert_type == ffi::CertType::CERT_TYPE_PEM {
+            bridge::Data::S(String::from_utf8_lossy(&cert_blob.data).into_owned())
+        } else {
+            bridge::Data::ArrayBuffer(ani_rs::typed_array::ArrayBuffer::new_with_vec(
+                cert_blob.data.clone(),
+            ))
+        };
+
+        let cert_type = match cert_blob.cert_type {
+            ffi::CertType::CERT_TYPE_PEM => bridge::CertType::CertTypePem,
+            ffi::CertType::CERT_TYPE_DER => bridge::CertType::CertTypeDer,
+            _ => bridge::CertType::CertTypeDer,
+        };
+
+        bridge::CertBlob {
+            type_: cert_type,
+            data,
+        }
+    }
 }
 
 impl From<bridge::CertBlob> for ffi::CertBlob {
@@ -97,6 +152,9 @@ mod ffi {
         fn NetStackVerifyCertificationCa(cert: &CertBlob, ca_cert: &CertBlob) -> u32;
 
         fn NetStackVerifyCertification(cert: &CertBlob) -> u32;
+
+        fn NetStackVerifyCertChain(certs: &Vec<CertBlob>, ca_cert: &CertBlob, hostname: &String,
+            out_certs: &mut Vec<CertBlob>) -> u32;
 
         fn GetErrorCodeAndMessage(error_code: &mut i32) -> String;
 

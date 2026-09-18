@@ -31,6 +31,12 @@ export default namespace networkSecurity {
     data: string | ArrayBuffer;
   }
 
+  export class CertBlobInner implements CertBlob {
+    type: CertType;
+
+    data: string | ArrayBuffer;
+  }
+
   export function certVerification(cert: CertBlob, caCert?: CertBlob): Promise<int> {
     return new Promise<int>((resolve, reject) => {
           taskpool.execute((): int => {
@@ -46,6 +52,20 @@ export default namespace networkSecurity {
   export native function certVerificationAsync(cert: CertBlob, caCert?: CertBlob): int;
 
   export native function certVerificationSync(cert: CertBlob, caCert?: CertBlob): int;
+
+  export function verifyCertChain(cert: CertBlob[], caCert?: CertBlob, hostname?: string): Promise<CertBlob[]> {
+    return new Promise<CertBlob[]>((resolve, reject) => {
+          taskpool.execute((): CertBlob[] => {
+              return verifyCertChainSync(cert, caCert, hostname);
+          }).then((content: Any) => {
+              resolve(content as CertBlob[]);
+          }, (err: Error): void => {
+              reject(err as BusinessError);
+          });
+      });
+  }
+
+  export native function verifyCertChainSync(cert: Array<CertBlob>,  caCert?: CertBlob, hostname?: string): Array<CertBlob>;
 
   export native function isCleartextPermitted(): boolean;
 
