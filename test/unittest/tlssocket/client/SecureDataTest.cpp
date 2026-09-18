@@ -53,6 +53,19 @@ HWTEST_F(SecureDataTest, stringData, TestSize.Level2)
     SecureData defaultData;
     EXPECT_EQ(defaultData.Length(), 0);
 }
+
+HWTEST_F(SecureDataTest, clearData, TestSize.Level2)
+{
+    std::string testString = "Secure Data string Test";
+    SecureData structureData(testString);
+    EXPECT_EQ(structureData.Length(), testString.length());
+    structureData.Clear();
+    EXPECT_EQ(structureData.Length(), 0);
+
+    SecureData emptyData;
+    emptyData.Clear();
+    EXPECT_EQ(emptyData.Length(), 0);
+}
 } // namespace TlsSocket
 } // namespace NetStack
 } // namespace OHOS

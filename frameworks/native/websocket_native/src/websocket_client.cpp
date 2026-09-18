@@ -296,11 +296,17 @@ int LwsCallbackClientReceive(lws *wsi, lws_callback_reasons reason, void *user, 
  
 int WebSocketClient::AppendData(void *data, size_t length)
 {
-    if (data_.size() + length > CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE) {
+    if (data == nullptr) {
+        NETSTACK_LOGE("AppendData data is nullptr");
+        return WebSocketErrorCode::WEBSOCKET_SEND_DATA_NULL;
+    }
+    // LCOV_EXCL_START
+    if (length > static_cast<size_t>(CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE) - data_.size()) {
         NETSTACK_LOGE("message size exceeds max limit");
         data_.clear();
         return WebSocketErrorCode::WEBSOCKET_DATA_LENGTH_EXCEEDS;
     }
+    // LCOV_EXCL_STOP
     data_.append(reinterpret_cast<char *>(data), length);
     return WEBSOCKET_NONE_ERR;
 }
@@ -1058,13 +1064,13 @@ int WebSocketClient::ConnectEx(std::string url, struct OpenOptions options)
 
 int WebSocketClient::SendEx(const char *data, size_t length)
 {
+    if (data == nullptr) {
+        return WebSocketErrorCode::WEBSOCKET_SEND_DATA_NULL;
+    }
     NETSTACK_LOGI("WebSocketClient::SendEx start %{public}s, %{public}zu", data, length);
     if (!CommonUtils::HasInternetPermission()) {
         this->GetClientContext()->permissionDenied = true;
         return WebSocketErrorCode::WEBSOCKET_ERROR_PERMISSION_DENIED;
-    }
-    if (data == nullptr) {
-        return WebSocketErrorCode::WEBSOCKET_SEND_DATA_NULL;
     }
     if (length == 0) {
         return WebSocketErrorCode::WEBSOCKET_NONE_ERR;
