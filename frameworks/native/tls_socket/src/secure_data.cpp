@@ -87,6 +87,17 @@ size_t SecureData::Length() const
 {
     return length_;
 }
+
+void SecureData::Clear()
+{
+    if (data_ != nullptr && length_ > 0) {
+        if (memset_s(data_.get(), length_, 0, length_) != EOK) {
+            NETSTACK_LOGE("memset_s failed!");
+        }
+    }
+    length_ = 0;
+    data_ = std::make_unique<char[]>(0);
+}
 } // namespace TlsSocket
 } // namespace NetStack
 } // namespace OHOS

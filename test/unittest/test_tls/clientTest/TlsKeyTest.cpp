@@ -215,21 +215,29 @@ HWTEST_F(TlsKeyTest, SwitchAlgorithmTest, TestSize.Level2)
 HWTEST_F(TlsKeyTest, ClearTest, TestSize.Level2)
 {
     SecureData structureData(g_keyFile);
-    std::string keyPassStr = "";
+    std::string keyPassStr = "testpass";
     SecureData keyPass(keyPassStr);
     TLSKey tlsKeyDsa = TLSKey(structureData, ALGORITHM_DSA, keyPass);
     tlsKeyDsa.dsa_ = DSA_new();
     tlsKeyDsa.Clear(true);
+    EXPECT_EQ(tlsKeyDsa.keyPass_.Length(), 0);
+    EXPECT_EQ(tlsKeyDsa.keyData_.Length(), 0);
     TLSKey tlsKeyDh = TLSKey(structureData, ALGORITHM_DH, keyPass);
     tlsKeyDh.dh_ = DH_new();
     tlsKeyDh.Clear(true);
+    EXPECT_EQ(tlsKeyDh.keyPass_.Length(), 0);
+    EXPECT_EQ(tlsKeyDh.keyData_.Length(), 0);
     TLSKey tlsKeyEc = TLSKey(structureData, ALGORITHM_EC, keyPass);
     tlsKeyEc.ec_ = EC_KEY_new();
     tlsKeyEc.Clear(true);
+    EXPECT_EQ(tlsKeyEc.keyPass_.Length(), 0);
+    EXPECT_EQ(tlsKeyEc.keyData_.Length(), 0);
     TLSKey tlsKeyOpaque = TLSKey(structureData, OPAQUE, keyPass);
     tlsKeyOpaque.genericKey_ = EVP_PKEY_new();
     tlsKeyOpaque.Clear(true);
     EXPECT_EQ(tlsKeyOpaque.keyIsNull_, true);
+    EXPECT_EQ(tlsKeyOpaque.keyPass_.Length(), 0);
+    EXPECT_EQ(tlsKeyOpaque.keyData_.Length(), 0);
 }
 
 HWTEST_F(TlsKeyTest, DecodeDataTest, TestSize.Level2)
