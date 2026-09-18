@@ -124,6 +124,21 @@ public:
         threadStop_.store(threadStop);
     }
 
+    void NotifyThreadExit()
+    {
+        {
+            std::lock_guard<std::mutex> lock(threadExitMutex_);
+            threadExited_ = true;
+        }
+        threadExitCv_.notify_one();
+    }
+
+    void WaitForThreadExit()
+    {
+        std::unique_lock<std::mutex> lock(threadExitMutex_);
+        threadExitCv_.wait(lock, [this]() { return threadExited_; });
+    }
+
     void Close(lws_close_status status, const std::string &reason)
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -211,6 +226,12 @@ private:
     std::queue<SendData> dataQueue_;
 
     lws *wsi_ = nullptr;
+
+    std::mutex threadExitMutex_;
+
+    std::condition_variable threadExitCv_;
+
+    bool threadExited_ = false;
 };
 
 static uint8_t* CreateOpenPara(uint32_t status, const std::string &message)
@@ -350,6 +371,7 @@ void RunService(std::shared_ptr<WebSocketContext> webSocketContext, CJWebsocketP
     lws_context *context = webSocketContext->GetContext();
     if (context == nullptr) {
         NETSTACK_LOGE("context is null");
+        webSocketContext->NotifyThreadExit();
         return;
     }
     while (res >= 0 && !webSocketContext->IsThreadStop()) {
@@ -358,6 +380,7 @@ void RunService(std::shared_ptr<WebSocketContext> webSocketContext, CJWebsocketP
     lws_context_destroy(context);
     webSocketContext->SetContext(nullptr);
     websocketProxy->SetWebSocketContext(nullptr);
+    webSocketContext->NotifyThreadExit();
     NETSTACK_LOGI("websocket run service end");
 }
 
@@ -474,6 +497,21 @@ bool NetWebSocketExec::ExecClose(WebSocketCloseContext *context)
     webSocketContext->TriggerWritable();
     NETSTACK_LOGI("ExecClose OK");
     return true;
+}
+
+void NetWebSocketExec::Destroy(CJWebsocketProxy *websocketProxy)
+{
+    if (websocketProxy == nullptr) {
+        return;
+    }
+    auto webSocketContext = websocketProxy->GetWebSocketContext();
+    if (webSocketContext == nullptr) {
+        return;
+    }
+    webSocketContext->SetThreadStop(true);
+    webSocketContext->Close(LWS_CLOSE_STATUS_NORMAL, "");
+    webSocketContext->TriggerWritable();
+    webSocketContext->WaitForThreadExit();
 }
 
 bool NetWebSocketExec::ParseUrl(WebSocketConnectContext *context, char *protocol, size_t protocolLen, char *address,
