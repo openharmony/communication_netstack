@@ -19,6 +19,11 @@
 #include "net_websocket_exec.h"
 
 namespace OHOS::NetStack::NetWebSocket {
+CJWebsocketProxy::~CJWebsocketProxy()
+{
+    NetWebSocketExec::Destroy(this);
+}
+
 WebSocketConnectContext* CJWebsocketImpl::Connect(std::string url, CWebSocketRequestOptions *opt,
                                                   CJWebsocketProxy *websocketProxy)
 {

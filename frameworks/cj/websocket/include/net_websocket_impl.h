@@ -36,8 +36,10 @@ using WebSocketCallback = std::function<void(CWebSocketCallbackData *)>;
 
 class CJWebsocketProxy : public OHOS::FFI::FFIData {
     DECL_TYPE(CJWebsocketProxy, OHOS::FFI::FFIData);
-    
+
 public:
+    ~CJWebsocketProxy() override;
+
     std::shared_ptr<NetWebSocket::WebSocketContext> GetWebSocketContext();
     void SetWebSocketContext(const std::shared_ptr<NetWebSocket::WebSocketContext> &websocketContext);
     void EmitCallBack(CWebSocketCallbackData *data);
