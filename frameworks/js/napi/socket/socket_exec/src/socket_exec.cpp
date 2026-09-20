@@ -2528,6 +2528,10 @@ static void AcceptRecvData(int sock, sockaddr *addr, socklen_t addrLen, TcpMessa
             if (errno != EINTR) {
                 NETSTACK_LOGE("accept fail, close sock: %{public}d, connectFD: %{public}d, errno: %{public}d", sock,
                               connectFD, errno);
+                auto config = GetSharedConfig(callback.GetEventManager());
+                if (config != nullptr) {
+                    config->RemoveServerSocket(sock);
+                }
                 close(sock);
                 break;
             }

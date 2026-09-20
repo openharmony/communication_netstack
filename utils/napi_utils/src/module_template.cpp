@@ -324,7 +324,10 @@ void CleanUpWithSharedManager(void* data)
     std::unique_ptr<napi_handle_scope__, decltype(closeScope)> scope(NapiUtils::OpenScope(env), closeScope);
     napi_value obj = nullptr;
     void* result = nullptr;
-    napi_get_named_property(env, NapiUtils::GetGlobal(env), manager->className_.c_str(), &obj);
+    napi_status getStatus = napi_get_named_property(env, NapiUtils::GetGlobal(env), manager->className_.c_str(), &obj);
+    if (getStatus != napi_ok) {
+        return;
+    }
     napi_remove_wrap(env, obj, &result);
 }
 
@@ -459,7 +462,7 @@ napi_value NewInstanceWithSharedManager(napi_env env, napi_callback_info info, c
         NETSTACK_LOGD("create reference for %{public}s", className.c_str());
         manager->CreateEventReference(env, thisVal);
     }
-    napi_wrap(env, result, reinterpret_cast<void *>(sharedManager),
+    napi_status wrapStatus = napi_wrap(env, result, reinterpret_cast<void *>(sharedManager),
         [](napi_env env, void *data, void *hint) {
             napi_remove_env_cleanup_hook(env, CleanUpWithSharedManager, data);
             auto sharedManager = reinterpret_cast<std::shared_ptr<EventManager> *>(data);
@@ -470,6 +473,16 @@ napi_value NewInstanceWithSharedManager(napi_env env, napi_callback_info info, c
             manager->finalizer_(env, data, hint);
         },
         nullptr, nullptr);
+    if (wrapStatus != napi_ok) {
+        NETSTACK_LOGE("napi_wrap failed for %{public}s, status: %{public}d", className.c_str(), wrapStatus);
+        if (className == INTERFACE_HTTP_REQUEST || className == INTERFACE_LOCAL_SOCKET ||
+            className == INTERFACE_TLS_SOCKET || className == INTERFACE_WEB_SOCKET ||
+            className == INTERFACE_WEB_SOCKET_SERVER) {
+            manager->DeleteEventReference(env);
+        }
+        delete sharedManager;
+        return result;
+    }
     napi_set_named_property(env, global, manager->className_.c_str(), result);
     napi_add_env_cleanup_hook(env, CleanUpWithSharedManager, reinterpret_cast<void *>(sharedManager));
     #ifndef CROSS_PLATFORM
