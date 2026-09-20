@@ -167,7 +167,7 @@ public:
         if (status != napi_ok) {
             return;
         }
-        auto deleter = [](Context *context){
+        auto deleter = [](Context *context) {
             context->DeleteReference();
             delete context;
         };
