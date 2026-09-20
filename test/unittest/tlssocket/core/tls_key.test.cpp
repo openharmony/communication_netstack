@@ -51,6 +51,22 @@ HWTEST_F(TLSKeyTest, TLSKeyTestt001, testing::ext::TestSize.Level1)
     EXPECT_NE(key.dsa_, nullptr);
     EXPECT_NE(key.dh_, nullptr);
     EXPECT_NE(key.ec_, nullptr);
+    RSA_free(key.rsa_);
+    DSA_free(key.dsa_);
+    DH_free(key.dh_);
+    EC_KEY_free(key.ec_);
+    key.rsa_ = nullptr;
+    key.dsa_ = nullptr;
+    key.dh_ = nullptr;
+    key.ec_ = nullptr;
+    RSA_free(other.rsa_);
+    DSA_free(other.dsa_);
+    DH_free(other.dh_);
+    EC_KEY_free(other.ec_);
+    other.rsa_ = nullptr;
+    other.dsa_ = nullptr;
+    other.dh_ = nullptr;
+    other.ec_ = nullptr;
 }
 
 HWTEST_F(TLSKeyTest, TLSKeyTestt002, testing::ext::TestSize.Level1)
@@ -76,6 +92,14 @@ HWTEST_F(TLSKeyTest, TLSKeyTestt002, testing::ext::TestSize.Level1)
     EXPECT_NE(key.handle(), nullptr);
     key.keyAlgorithm_ = static_cast<KeyAlgorithm>(9999999);
     EXPECT_EQ(key.handle(), nullptr);
+    RSA_free(key.rsa_);
+    DSA_free(key.dsa_);
+    DH_free(key.dh_);
+    EC_KEY_free(key.ec_);
+    key.rsa_ = nullptr;
+    key.dsa_ = nullptr;
+    key.dh_ = nullptr;
+    key.ec_ = nullptr;
 }
 
 HWTEST_F(TLSKeyTest, TLSKeyTestt003, testing::ext::TestSize.Level1)

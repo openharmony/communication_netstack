@@ -17,6 +17,7 @@
 
 #include "secure_char.h"
 #include "wrapper.rs.h"
+#include <climits>
 #include <memory>
 #include <map>
 #include <shared_mutex>
@@ -335,6 +336,10 @@ int32_t SendServerData(NetStack::WebSocketServer::WebSocketServer &server, const
     const AniWebSocketConnection &connection, int32_t dataType)
 {
     if ((data.size() == 0 || data.data() == nullptr) && dataType == 1) {
+        return PARSE_ERROR_CODE;
+    }
+    if (data.size() > INT32_MAX) {
+        NETSTACK_LOGE("data size too large: %{public}zu", data.size());
         return PARSE_ERROR_CODE;
     }
     std::string strIP(get_web_socket_connection_client_ip(connection).c_str());

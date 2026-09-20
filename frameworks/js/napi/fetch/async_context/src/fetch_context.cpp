@@ -27,6 +27,22 @@ FetchContext::FetchContext(napi_env env, const std::shared_ptr<EventManager> &ma
 {
 }
 
+FetchContext::~FetchContext()
+{
+    if (successCallback_ != nullptr) {
+        NapiUtils::DeleteReference(GetEnv(), successCallback_);
+        successCallback_ = nullptr;
+    }
+    if (failCallback_ != nullptr) {
+        NapiUtils::DeleteReference(GetEnv(), failCallback_);
+        failCallback_ = nullptr;
+    }
+    if (completeCallback_ != nullptr) {
+        NapiUtils::DeleteReference(GetEnv(), completeCallback_);
+        completeCallback_ = nullptr;
+    }
+}
+
 void FetchContext::ParseParams(napi_value *params, size_t paramsCount)
 {
     SetNeedPromise(false);

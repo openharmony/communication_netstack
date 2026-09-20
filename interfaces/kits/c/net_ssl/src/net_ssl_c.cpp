@@ -44,6 +44,7 @@ struct OHOS::NetStack::Ssl::CertBlob SwitchToCertBlob(const struct NetStack_Cert
             cb.type = OHOS::NetStack::Ssl::CertType::CERT_TYPE_MAX;
             break;
         default:
+            cb.type = OHOS::NetStack::Ssl::CertType::CERT_TYPE_MAX;
             break;
     }
     cb.size = cert.size;
@@ -250,8 +251,15 @@ static uint32_t ConvertOutputChain(
             free(outputChain);
             return OHOS::NetStack::Ssl::SSL_X509_V_ERR_OUT_OF_MEMORY;
         }
-        memcpy_s(outputChain[i].data, sortedChain[i].size,
-                 sortedChain[i].data, sortedChain[i].size);
+        if (memcpy_s(outputChain[i].data, sortedChain[i].size,
+                     sortedChain[i].data, sortedChain[i].size) != EOK) {
+            NETSTACK_LOGE("Failed to copy cert data at index %{public}zu", i);
+            for (size_t j = 0; j <= i; j++) {
+                free(outputChain[j].data);
+            }
+            free(outputChain);
+            return OHOS::NetStack::Ssl::SSL_X509_V_ERR_OUT_OF_MEMORY;
+        }
     }
 
     *outSortedChain = outputChain;

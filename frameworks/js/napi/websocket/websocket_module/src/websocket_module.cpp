@@ -134,15 +134,12 @@ void WebSocketModule::FinalizeWebSocketInstance(napi_env env, void *data, void *
         return;
     }
     auto manager = *sharedManager;
-    if (manager->GetWebSocketUserData() == nullptr) {
-        return;
+    if (manager != nullptr) {
+        auto userData = manager->GetWebSocketUserData();
+        if (userData != nullptr) {
+            userData->SetThreadStop(true);
+        }
     }
-    auto userData = manager->GetWebSocketUserData();
-    if (userData == nullptr) {
-        NETSTACK_LOGE("user data is null");
-        return;
-    }
-    userData->SetThreadStop(true);
     delete sharedManager;
 }
 

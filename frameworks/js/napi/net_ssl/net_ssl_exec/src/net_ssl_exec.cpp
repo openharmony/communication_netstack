@@ -55,8 +55,12 @@ bool SslExec::ExecVerify(CertContext *context)
 
 napi_value SslExec::VerifyCallback(CertContext *context)
 {
-    napi_value result;
-    napi_create_int32(context->GetEnv(), static_cast<int32_t>(context->GetErrorCode()), &result);
+    napi_value result = nullptr;
+    napi_status status = napi_create_int32(context->GetEnv(), static_cast<int32_t>(context->GetErrorCode()), &result);
+    if (status != napi_ok || result == nullptr) {
+        NETSTACK_LOGE("napi_create_int32 failed, status: %{public}d", status);
+        return NapiUtils::GetUndefined(context->GetEnv());
+    }
     return result;
 }
 

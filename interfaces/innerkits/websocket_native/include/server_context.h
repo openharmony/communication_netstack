@@ -83,7 +83,31 @@ public:
 
         SendData() = delete;
 
-        ~SendData() = default;
+        ~SendData()
+        {
+            free(data);
+        }
+
+        SendData(const SendData &) = delete;
+        SendData &operator=(const SendData &) = delete;
+
+        SendData(SendData &&other) noexcept
+            : data(other.data), length(other.length), protocol(other.protocol)
+        {
+            other.data = nullptr;
+        }
+
+        SendData &operator=(SendData &&other) noexcept
+        {
+            if (this != &other) {
+                free(data);
+                data = other.data;
+                length = other.length;
+                protocol = other.protocol;
+                other.data = nullptr;
+            }
+            return *this;
+        }
 
         void *data;
         size_t length;
@@ -151,19 +175,19 @@ public:
         if (dataQueue_.empty()) {
             return { nullptr, 0, LWS_WRITE_TEXT };
         }
-        SendData data = dataQueue_.front();
+        SendData data = std::move(dataQueue_.front());
         dataQueue_.pop();
         return data;
     }
 
     void SetContext(lws_context *context)
     {
-        context_ = context;
+        context_.store(context);
     }
 
     lws_context *GetContext()
     {
-        return context_;
+        return context_.load();
     }
 
     bool IsEmpty()
@@ -213,7 +237,7 @@ private:
 
     std::mutex mutexForLws_;
 
-    lws_context *context_;
+    std::atomic<lws_context *> context_;
 
     std::queue<SendData> dataQueue_;
 
@@ -272,11 +296,11 @@ public:
     }
     void AddConnections(const std::string &id, lws *wsi, SocketConnection &conn)
     {
+        std::unique_lock<std::shared_mutex> lock(wsMutex_);
         if (IsClosed() || IsThreadStop()) {
             NETSTACK_LOGE("AddConnections failed: session %s", IsClosed() ? "closed" : "thread stopped");
             return;
         }
-        std::unique_lock<std::shared_mutex> lock(wsMutex_);
         webSocketConnection_[id].first = wsi;
         webSocketConnection_[id].second = conn;
     }
@@ -302,16 +326,11 @@ public:
     }
     void RemoveConnections(const std::string &id)
     {
-        if (webSocketConnection_.empty()) {
+        std::unique_lock<std::shared_mutex> lock(wsMutex_);
+        if (webSocketConnection_.find(id) == webSocketConnection_.end()) {
             return;
         }
-        {
-            std::unique_lock<std::shared_mutex> lock(wsMutex_);
-            if (webSocketConnection_.find(id) == webSocketConnection_.end()) {
-                return;
-            }
-            webSocketConnection_.erase(id);
-        }
+        webSocketConnection_.erase(id);
     }
     void ListAllConnections(std::vector<SocketConnection> &connections)
     {
@@ -371,30 +390,13 @@ public:
         }
         return false;
     }
-    void UpdateClientList(const std::string &ip)
-    {
-        std::unique_lock<std::shared_mutex> lock(connListMutex_);
-        auto it = clientList_.find(ip);
-        if (it == clientList_.end()) {
-            NETSTACK_LOGI("add clientid to clientlist");
-            clientList_[ip] = {1, GetCurrentSecond()};
-        } else {
-            auto now = GetCurrentSecond() - it->second.lastConnectionTime;
-            if (now > ONE_MINUTE_IN_SEC) {
-                NETSTACK_LOGI("reset clientid connections cnt");
-                it->second = { 1, GetCurrentSecond() };
-            } else {
-                it->second.cnt++;
-            }
-        }
-    }
     bool IsHighFreqConnection(const std::string &ip)
     {
         std::shared_lock<std::shared_mutex> lock(connListMutex_);
         auto it = clientList_.find(ip);
         if (it != clientList_.end()) {
-            auto duration = GetCurrentSecond() - it->second.lastConnectionTime;
-            if (duration <= ONE_MINUTE_IN_SEC) {
+            uint64_t now = GetCurrentSecond();
+            if (now >= it->second.lastConnectionTime && now - it->second.lastConnectionTime <= ONE_MINUTE_IN_SEC) {
                 return it->second.cnt > MAX_CONNECTIONS_PER_MINUTE;
             }
         }
@@ -406,26 +408,67 @@ public:
             NETSTACK_LOGE("client is in banlist");
             return false;
         }
-        if (IsHighFreqConnection(ip)) {
+        std::unique_lock<std::shared_mutex> lock(connListMutex_);
+        if (clientList_.size() > MAX_CLIENT_LIST_SIZE) {
+            uint64_t now = GetCurrentSecond();
+            for (auto it = clientList_.begin(); it != clientList_.end();) {
+                if (now >= it->second.lastConnectionTime &&
+                    now - it->second.lastConnectionTime > ONE_MINUTE_IN_SEC) {
+                    it = clientList_.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+        }
+        auto it = clientList_.find(ip);
+        uint64_t now = GetCurrentSecond();
+        if (it == clientList_.end()) {
+            clientList_[ip] = {1, now};
+            return true;
+        }
+        if (now < it->second.lastConnectionTime) {
+            it->second = {1, now};
+            return true;
+        }
+        uint64_t duration = now - it->second.lastConnectionTime;
+        if (duration > ONE_MINUTE_IN_SEC) {
+            it->second = {1, now};
+            return true;
+        }
+        if (it->second.cnt > MAX_CONNECTIONS_PER_MINUTE) {
             NETSTACK_LOGE("client reach high frequency connection");
+            lock.unlock();
             AddBanList(ip);
             return false;
         }
-        UpdateClientList(ip);
+        it->second.cnt++;
         return true;
     }
     const std::string &GetWsServerBinaryData(void *wsi)
     {
-        return wsServerBinaryData_[wsi];
+        static const std::string empty;
+        auto it = wsServerBinaryData_.find(wsi);
+        if (it != wsServerBinaryData_.end()) {
+            return it->second;
+        }
+        return empty;
     }
 
     const std::string &GetWsServerTextData(void *wsi)
     {
-        return wsServerTextData_[wsi];
+        static const std::string empty;
+        auto it = wsServerTextData_.find(wsi);
+        if (it != wsServerTextData_.end()) {
+            return it->second;
+        }
+        return empty;
     }
 
     int AppendWsServerBinaryData(void *wsi, void *data, size_t length)
     {
+        if (data == nullptr || length == 0) {
+            return WebSocketClient::WEBSOCKET_NONE_ERR;
+        }
         auto it = wsServerBinaryData_.find(wsi);
         if (it != wsServerBinaryData_.end()) {
             if (length > static_cast<size_t>(CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE) - it->second.size()) {
@@ -446,6 +489,9 @@ public:
 
     int AppendWsServerTextData(void *wsi, void *data, size_t length)
     {
+        if (data == nullptr || length == 0) {
+            return WebSocketClient::WEBSOCKET_NONE_ERR;
+        }
         auto it = wsServerTextData_.find(wsi);
         if (it != wsServerTextData_.end()) {
             if (length > static_cast<size_t>(CommonUtils::WEBSOCKET_PER_MESSAGE_MAX_SIZE) - it->second.size()) {
@@ -466,12 +512,12 @@ public:
 
     void ClearWsServerBinaryData(void *wsi)
     {
-        wsServerBinaryData_[wsi].clear();
+        wsServerBinaryData_.erase(wsi);
     }
 
     void ClearWsServerTextData(void *wsi)
     {
-        wsServerTextData_[wsi].clear();
+        wsServerTextData_.erase(wsi);
     }
     void SetPermissionDenied(bool denied)
     {
@@ -501,6 +547,7 @@ private:
     std::unordered_map<void *, std::string> wsServerTextData_;
     static constexpr const uint64_t ONE_MINUTE_IN_SEC = 60;
     static constexpr const int32_t MAX_CONNECTIONS_PER_MINUTE = 50;
+    static constexpr const size_t MAX_CLIENT_LIST_SIZE = 10000;
 };
 }; // namespace WebSocketServer
 } // namespace NetStack

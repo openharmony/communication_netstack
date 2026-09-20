@@ -100,6 +100,11 @@ uint32_t OH_Http_SetHeaderValue(Http_Headers *headers, const char *name, const c
     if (headers == nullptr || headers->fields == nullptr || name == nullptr || value == nullptr) {
         return OH_HTTP_PARAMETER_ERROR;
     }
+    if (strchr(name, '\r') != nullptr || strchr(name, '\n') != nullptr ||
+        strchr(value, '\r') != nullptr || strchr(value, '\n') != nullptr) {
+        NETSTACK_LOGE("header name or value contains CRLF");
+        return OH_HTTP_PARAMETER_ERROR;
+    }
  
     char *lowerName = OH_Http_ToLowerCase(name);
     if (lowerName == nullptr) {
@@ -253,7 +258,7 @@ void OH_Http_SetHeaderData(Http_Headers *headers, HttpClientRequest *httpReq)
     Http_HeaderEntry *delEntries = entries;
     while (entries != nullptr) {
         headerValue = entries->value;
-        while (headerValue != nullptr && entries->key != nullptr) {
+        while (headerValue != nullptr && headerValue->value != nullptr && entries->key != nullptr) {
             httpReq->SetHeader(entries->key, headerValue->value);
             headerValue = headerValue->next;
         }
@@ -271,6 +276,10 @@ static void OH_Http_DestroyResponse(Http_Response **response)
     }
     if ((*response)->headers != nullptr) {
         OH_Http_DestroyHeaders(&(*response)->headers);
+    }
+    if ((*response)->body.buffer != nullptr) {
+        free((void *)(*response)->body.buffer);
+        (*response)->body.buffer = nullptr;
     }
     if ((*response)->cookies != nullptr) {
         free((*response)->cookies);
