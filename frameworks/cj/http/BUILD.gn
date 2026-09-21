@@ -121,6 +121,8 @@ ohos_shared_library("cj_net_http_ffi") {
       external_deps += [ "init:libbegetutil" ]
     }
 
+    version_script = "libcj_net_http_ffi.map"
+
     deps = [ "$NETSTACK_DIR/utils:stack_utils_common" ]
 
     if (defined(global_parts_info) &&
@@ -144,8 +146,6 @@ ohos_shared_library("cj_net_http_ffi") {
     "-D_FORTIFY_SOURCE=2",
     "-O2",
   ]
-
-  version_script = "libcj_net_http_ffi.map"
 
   innerapi_tags = [ "platformsdk" ]
   part_name = "netstack"
