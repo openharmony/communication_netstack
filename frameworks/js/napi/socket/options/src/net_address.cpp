@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include <cerrno>
+#include <charconv>
 #include <netdb.h>
 
 #include "net_address.h"
@@ -73,10 +73,9 @@ void NetAddress::SetIpAddress(const std::string &address)
 void NetAddress::SetIpAddressInner(const std::string &address)
 {
     if (family_ == Family::IPv4) {
-        constexpr int LONG_BASE = 10;
-        char *error = nullptr;
-        auto inet = std::strtol(address.c_str(), &error, LONG_BASE);
-        if (error && *error == '\0' && inet >= 0 && inet <= UINT32_MAX) {
+        uint32_t inet = 0;
+        auto [ptr, ec] = std::from_chars(address.data(), address.data() + address.size(), inet);
+        if (ec == std::errc{} && ptr == address.data() + address.size()) {
             in_addr addr{};
             addr.s_addr = static_cast<in_addr_t>(inet);
             address_ = inet_ntoa(addr);

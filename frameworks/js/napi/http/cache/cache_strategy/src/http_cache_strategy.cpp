@@ -16,6 +16,7 @@
 #include "http_cache_strategy.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 
 #include "casche_constant.h"
@@ -27,6 +28,7 @@
 
 static constexpr int64_t ONE_DAY_MILLISECONDS = 24 * 60 * 60 * 1000L;
 static constexpr int64_t CONVERT_TO_MILLISECONDS = 1000;
+static constexpr int64_t MAX_TIME_SECONDS = INT64_MAX / CONVERT_TO_MILLISECONDS;
 static constexpr const char *KEY_RANGE = "range";
 
 // RFC 7234
@@ -128,7 +130,8 @@ int64_t HttpCacheStrategy::CacheResponseAgeMillis()
 
     int64_t residentTime = std::max<int64_t>(0, nowTime - responseTime);
 
-    return (correctedInitialAge + residentTime) * CONVERT_TO_MILLISECONDS;
+    int64_t totalAge = std::min<int64_t>(correctedInitialAge + residentTime, MAX_TIME_SECONDS);
+    return totalAge * CONVERT_TO_MILLISECONDS;
 }
 
 int64_t HttpCacheStrategy::ComputeFreshnessLifetimeSecondsInternal()
@@ -179,7 +182,7 @@ int64_t HttpCacheStrategy::ComputeFreshnessLifetimeMillis()
     }
 
     NETSTACK_LOGI("lifeTime=%{public}lld", static_cast<long long>(lifeTime));
-    return lifeTime * CONVERT_TO_MILLISECONDS;
+    return std::min<int64_t>(lifeTime, MAX_TIME_SECONDS) * CONVERT_TO_MILLISECONDS;
 }
 
 void HttpCacheStrategy::UpdateRequestHeader(const std::string &etag,
@@ -231,11 +234,13 @@ std::tuple<int64_t, int64_t, int64_t, int64_t> HttpCacheStrategy::GetFreshness()
 
     int64_t lifeTime = ComputeFreshnessLifetimeMillis();
 
-    int64_t minFreshMillis = std::max<int64_t>(0, cacheRequest_.GetMinFreshSeconds() * CONVERT_TO_MILLISECONDS);
+    int64_t minFreshMillis = std::max<int64_t>(0,
+        std::min<int64_t>(cacheRequest_.GetMinFreshSeconds(), MAX_TIME_SECONDS) * CONVERT_TO_MILLISECONDS);
 
     int64_t maxStaleMillis = 0;
     if (!cacheResponse_.IsMustRevalidate()) {
-        maxStaleMillis = std::max<int64_t>(0, cacheRequest_.GetMaxStaleSeconds() * CONVERT_TO_MILLISECONDS);
+        maxStaleMillis = std::max<int64_t>(0,
+            std::min<int64_t>(cacheRequest_.GetMaxStaleSeconds(), MAX_TIME_SECONDS) * CONVERT_TO_MILLISECONDS);
     }
 
     NETSTACK_LOGI("GetFreshness: %{public}lld, %{public}lld, %{public}lld, %{public}lld",

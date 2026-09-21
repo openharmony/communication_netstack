@@ -171,7 +171,12 @@ struct curl_slist *HttpRequest::MakeHeaders(const std::vector<std::string> &vec)
 {
     struct curl_slist *header = nullptr;
     for (const auto &s : vec) {
-        header = curl_slist_append(header, s.c_str());
+        struct curl_slist *tmp = curl_slist_append(header, s.c_str());
+        if (tmp == nullptr) {
+            curl_slist_free_all(header);
+            return nullptr;
+        }
+        header = tmp;
     }
     return header;
 }

@@ -47,7 +47,7 @@ void FetchResponse::ParseHeaders()
         auto index = header.find(FetchConstant::HTTP_HEADER_SEPARATOR);
         if (index == std::string::npos) {
             header_[CommonUtils::Strip(header)] = "";
-            NETSTACK_LOGI("HEAD: %{public}s", CommonUtils::Strip(header).c_str());
+            NETSTACK_LOGI("HEAD line without separator");
             continue;
         }
         header_[CommonUtils::ToLower(CommonUtils::Strip(header.substr(0, index)))] =

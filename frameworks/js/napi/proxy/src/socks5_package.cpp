@@ -132,6 +132,10 @@ static int CopyAddrToStr(Socks5AddrType addrType, std::string &destAddr, std::st
             return pos + sizeof(ipv4Address);
         }
         case Socks5AddrType::DOMAIN_NAME: {
+            if (destAddr.length() > UINT8_MAX) {
+                NETSTACK_LOGE("domain name too long: %{public}zu", destAddr.length());
+                return -1;
+            }
             uint8_t domainLength = static_cast<uint8_t>(destAddr.length());
             serialized[pos] = domainLength;
             if (memcpy_s(&serialized[pos + 1], serialized.size() - pos - 1, destAddr.c_str(), domainLength) != EOK) {

@@ -30,6 +30,8 @@ public:
 
     explicit FetchContext(napi_env env, const std::shared_ptr<EventManager> &manager);
 
+    ~FetchContext() override;
+
     void ParseParams(napi_value *params, size_t paramsCount) override;
 
     [[nodiscard]] napi_value GetSuccessCallback() const;

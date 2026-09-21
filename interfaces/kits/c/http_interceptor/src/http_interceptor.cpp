@@ -20,6 +20,9 @@
 
 int32_t OH_Http_AddInterceptor(struct OH_Http_Interceptor *interceptor)
 {
+    if (!OHOS::NetStack::CommonUtils::HasInternetPermission()) {
+        return OH_HTTP_PERMISSION_DENIED;
+    }
     return OHOS::NetStack::HttpInterceptor::HttpInterceptorMgr::GetInstance().AddInterceptor(interceptor);
 }
 
