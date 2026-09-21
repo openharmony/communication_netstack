@@ -1178,7 +1178,7 @@ void RequestContext::SetPerformanceTimingToResult(napi_value result)
         NETSTACK_LOGD("Get performanceTiming data is empty.");
         return;
     }
-    napi_value performanceTimingValue;
+    napi_value performanceTimingValue = nullptr;
     napi_env env = GetEnv();
     napi_create_object(env, &performanceTimingValue);
     for (const auto &pair : performanceTimingMap_) {
@@ -1756,7 +1756,7 @@ void RequestContext::SetConnectionExtraInfoToResult(napi_value result)
         auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), result);
         return (ec == std::errc()) ? result : defaultValue;
     };
-    napi_value extraInfoValue;
+    napi_value extraInfoValue = nullptr;
     napi_env env = GetEnv();
     napi_create_object(env, &extraInfoValue);
     NapiUtils::SetStringPropertyUtf8(env, extraInfoValue, HttpConstant::PARAM_KEY_NETWORK_PROTOCOL_NAME,
