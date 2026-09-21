@@ -121,6 +121,7 @@ void TLSKey::DecodeData(const SecureData &data, const SecureData &passPhrase)
     } else {
         rsa_ = PEM_read_bio_RSAPrivateKey(bio, nullptr, PemPasswordCallback,
                                           const_cast<SecureData *>(&passPhrase));
+        keyAlgorithm_ = ALGORITHM_RSA;
     }
 
     EVP_PKEY_free(evp_pkey);

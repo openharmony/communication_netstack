@@ -281,8 +281,12 @@ CertBlob *VerifyCertChainContext::ParseDerCertBlob(napi_env env, napi_value data
 CertBlob *VerifyCertChainContext::ParseCertBlobFromData(
     napi_env env, napi_value typeValue, napi_value dataValue)
 {
-    uint32_t type;
-    napi_get_value_uint32(env, typeValue, &type);
+    uint32_t type = 0;
+    napi_status status = napi_get_value_uint32(env, typeValue, &type);
+    if (status != napi_ok) {
+        NETSTACK_LOGE("cert type is not a number");
+        return new CertBlob{CERT_TYPE_MAX, 0, nullptr};
+    }
     CertType certType = static_cast<CertType>(type);
 
     if (certType == CERT_TYPE_PEM) {

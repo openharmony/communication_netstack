@@ -294,13 +294,13 @@ bool TLSContext::SetKeyAndCheck(TLSContext *tlsContext, const TLSConfiguration &
             return false;
         }
         if (configuration.GetPrivateKey().Algorithm() == ALGORITHM_RSA) {
-            EVP_PKEY_assign_RSA(tlsContext->pkey_, reinterpret_cast<RSA *>(configuration.GetPrivateKey().handle()));
+            EVP_PKEY_set1_RSA(tlsContext->pkey_, reinterpret_cast<RSA *>(configuration.GetPrivateKey().handle()));
         } else if (configuration.GetPrivateKey().Algorithm() == ALGORITHM_DSA) {
-            EVP_PKEY_assign_DSA(tlsContext->pkey_, reinterpret_cast<DSA *>(configuration.GetPrivateKey().handle()));
+            EVP_PKEY_set1_DSA(tlsContext->pkey_, reinterpret_cast<DSA *>(configuration.GetPrivateKey().handle()));
         } else if (configuration.GetPrivateKey().Algorithm() == ALGORITHM_DH) {
-            EVP_PKEY_assign_DH(tlsContext->pkey_, reinterpret_cast<DH *>(configuration.GetPrivateKey().handle()));
+            EVP_PKEY_set1_DH(tlsContext->pkey_, reinterpret_cast<DH *>(configuration.GetPrivateKey().handle()));
         } else if (configuration.GetPrivateKey().Algorithm() == ALGORITHM_EC) {
-            EVP_PKEY_assign_EC_KEY(tlsContext->pkey_,
+            EVP_PKEY_set1_EC_KEY(tlsContext->pkey_,
                                    reinterpret_cast<EC_KEY *>(configuration.GetPrivateKey().handle()));
         } else {
             NETSTACK_LOGE("Unsupported private key algorithm");
