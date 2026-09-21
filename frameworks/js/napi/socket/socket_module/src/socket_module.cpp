@@ -199,7 +199,6 @@ void FinalizeTcpSocketServer(napi_env, void *data, void *)
         if (sock != -1) {
             NETSTACK_LOGI("finalize close all listenfd");
             manager->SetData(reinterpret_cast<void *>(-1));
-            close(sock);
             auto config = SocketExec::GetSharedConfig(manager);
             if (config != nullptr) {
                 config->ShutdownAllSockets();
