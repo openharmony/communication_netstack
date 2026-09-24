@@ -332,12 +332,12 @@ int LwsCallbackClosed(lws *wsi, lws_callback_reasons reason, void *user, void *i
 int LwsCallbackWsiDestroyServer(lws *wsi, lws_callback_reasons reason, void *user, void *in, size_t len)
 {
     NETSTACK_LOGD("lws server callback wsi destroy");
-    lws_context *context = lws_get_context(wsi);
-    WebSocketServer *server = static_cast<WebSocketServer *>(lws_context_user(context));
     if (wsi == nullptr) {
         NETSTACK_LOGE("wsi is null");
         return -1;
     }
+    lws_context *context = lws_get_context(wsi);
+    WebSocketServer *server = static_cast<WebSocketServer *>(lws_context_user(context));
     if (server == nullptr) {
         NETSTACK_LOGE("server is null");
         return RaiseServerError(server);
@@ -346,7 +346,6 @@ int LwsCallbackWsiDestroyServer(lws *wsi, lws_callback_reasons reason, void *use
         NETSTACK_LOGE("server context is null");
         return RaiseServerError(server);
     }
-    server->GetServerContext()->SetContext(nullptr);
     return HttpDummy(wsi, reason, user, in, len);
 }
 
