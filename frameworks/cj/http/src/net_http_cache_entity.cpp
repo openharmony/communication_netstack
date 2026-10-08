@@ -15,9 +15,23 @@
 
 #include "net_http_cache_entity.h"
 
+#include <charconv>
+
 #include "netstack_common_utils.h"
 
 namespace OHOS::NetStack::Http {
+
+namespace {
+time_t ParseCacheSeconds(const std::string &value)
+{
+    time_t result = 0;
+    auto parsed = std::from_chars(value.data(), value.data() + value.size(), result);
+    if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size()) {
+        return INVALID_TIME;
+    }
+    return result;
+}
+} // namespace
 
 void HttpCacheRequest::ParseCacheControl(const std::string &cacheControl)
 {
@@ -94,7 +108,7 @@ time_t HttpCacheRequest::GetMaxAgeSeconds() const
         return INVALID_TIME;
     }
 
-    return std::strtol(maxAge_.c_str(), nullptr, DECIMAL);
+    return ParseCacheSeconds(maxAge_);
 }
 
 time_t HttpCacheRequest::GetMaxStaleSeconds() const
@@ -103,7 +117,7 @@ time_t HttpCacheRequest::GetMaxStaleSeconds() const
         return INVALID_TIME;
     }
 
-    return std::strtol(maxStale_.c_str(), nullptr, DECIMAL);
+    return ParseCacheSeconds(maxStale_);
 }
 
 time_t HttpCacheRequest::GetMinFreshSeconds() const
@@ -111,7 +125,7 @@ time_t HttpCacheRequest::GetMinFreshSeconds() const
     if (minFresh_.empty()) {
         return INVALID_TIME;
     }
-    return std::strtol(minFresh_.c_str(), nullptr, DECIMAL);
+    return ParseCacheSeconds(minFresh_);
 }
 
 bool HttpCacheRequest::IsNoCache() const
@@ -253,7 +267,7 @@ time_t HttpCacheResponse::GetAgeSeconds() const
     if (age_.empty()) {
         return INVALID_TIME;
     }
-    return std::strtol(age_.c_str(), nullptr, DECIMAL);
+    return ParseCacheSeconds(age_);
 }
 
 time_t HttpCacheResponse::GetMaxAgeSeconds() const
@@ -261,7 +275,7 @@ time_t HttpCacheResponse::GetMaxAgeSeconds() const
     if (maxAge_.empty()) {
         return INVALID_TIME;
     }
-    return std::strtol(maxAge_.c_str(), nullptr, DECIMAL);
+    return ParseCacheSeconds(maxAge_);
 }
 
 time_t HttpCacheResponse::GetSMaxAgeSeconds() const
@@ -269,7 +283,7 @@ time_t HttpCacheResponse::GetSMaxAgeSeconds() const
     if (sMaxAge_.empty()) {
         return INVALID_TIME;
     }
-    return std::strtol(sMaxAge_.c_str(), nullptr, DECIMAL);
+    return ParseCacheSeconds(sMaxAge_);
 }
 
 time_t HttpCacheResponse::GetResponseTime() const
